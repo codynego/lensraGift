@@ -13,10 +13,10 @@ A Nigeria-first Print-On-Demand platform backend built with Django and Django Re
 
 ## Tech Stack
 
-- **Django 4.2.7**: Web framework
+- **Django 4.2.26**: Web framework (latest security patch)
 - **Django REST Framework 3.14.0**: API framework
 - **PostgreSQL**: Database (via psycopg2-binary)
-- **Pillow 10.1.0**: Image processing for design previews
+- **Pillow 10.3.0**: Image processing for design previews (security patched)
 - **Paystack**: Payment gateway integration
 - **django-cors-headers**: CORS support for frontend integration
 

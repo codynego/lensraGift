@@ -4,10 +4,10 @@
 This project implements a complete MVP backend for Lensra, a Nigeria-first Print-On-Demand platform using Django and Django Rest Framework.
 
 ## Technology Stack
-- **Backend Framework**: Django 4.2.7
+- **Backend Framework**: Django 4.2.26 (security patched)
 - **API Framework**: Django REST Framework 3.14.0
 - **Database**: PostgreSQL (via psycopg2-binary)
-- **Image Processing**: Pillow 10.1.0
+- **Image Processing**: Pillow 10.3.0 (security patched)
 - **Payment Gateway**: Paystack (Nigeria)
 - **Additional**: django-cors-headers, django-filter, python-decouple
 
@@ -209,11 +209,26 @@ The codebase is production-ready with:
 ## Security
 
 - No vulnerabilities detected by CodeQL security scan
+- **All dependencies updated to patched versions**:
+  - Django upgraded from 4.2.7 to 4.2.26 (fixes SQL injection and DoS vulnerabilities)
+  - Pillow upgraded from 10.1.0 to 10.3.0 (fixes buffer overflow vulnerability)
 - Proper authentication and authorization
 - Environment-based secrets management
 - Input validation in serializers
 - Safe query practices
 - CSRF protection enabled
+
+### Security Updates Applied
+
+The following vulnerabilities were identified and resolved:
+- **Django SQL injection vulnerabilities**: Fixed by upgrading to 4.2.26
+  - SQL injection in column aliases
+  - SQL injection via _connector keyword in QuerySet and Q objects
+  - SQL injection in HasKey(lhs, rhs) on Oracle
+- **Django DoS vulnerabilities**: Fixed by upgrading to 4.2.26
+  - Denial-of-service in intcomma template filter
+  - Denial-of-service in HttpResponseRedirect on Windows
+- **Pillow buffer overflow**: Fixed by upgrading to 10.3.0
 
 ## Conclusion
 
