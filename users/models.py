@@ -37,6 +37,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     phone_number = models.CharField(max_length=20, blank=True)
+    reward_points = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(default=timezone.now)
@@ -56,3 +57,47 @@ class User(AbstractBaseUser, PermissionsMixin):
     def get_full_name(self):
         """Return the full name of the user."""
         return f"{self.first_name} {self.last_name}".strip() or self.email
+
+
+from django.db import models
+from django.conf import settings
+
+class Address(models.Model):
+    ADDRESS_TYPES = (
+        ('shipping', 'Shipping'),
+        ('billing', 'Billing'),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='addresses'
+    )
+    address_type = models.CharField(max_length=10, choices=ADDRESS_TYPES, default='shipping')
+    is_default = models.BooleanField(default=False)
+    
+    # Address Details
+    full_name = models.CharField(max_length=255, help_text="Recipient's name")
+    phone_number = models.CharField(max_length=20)
+    street_address = models.CharField(max_length=255)
+    apartment_suite = models.CharField(max_length=255, blank=True, null=True)
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    postal_code = models.CharField(max_length=20)
+    country = models.CharField(max_length=100, default='Nigeria') # Set your default
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "Addresses"
+        ordering = ['-is_default', '-created_at']
+
+    def __str__(self):
+        return f"{self.address_type.capitalize()} - {self.street_address}, {self.city}"
+
+    def save(self, *args, **kwargs):
+        # Ensure only one address is "default" for a user at a time
+        if self.is_default:
+            Address.objects.filter(user=self.user, is_default=True).update(is_default=False)
+        super().save(*args, **kwargs)

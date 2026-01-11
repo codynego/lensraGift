@@ -7,10 +7,14 @@ class Product(models.Model):
 
     name = models.CharField(max_length=255)
     description = models.TextField()
+    slug = models.SlugField(unique=True, max_length=255, blank=True)
     base_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     category = models.CharField(max_length=100)
     image = models.ImageField(upload_to='products/', blank=True, null=True)
     is_active = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
+    is_trending = models.BooleanField(default=False)
+    views_count = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

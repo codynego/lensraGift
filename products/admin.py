@@ -12,8 +12,8 @@ class PrintableAreaInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     """Admin configuration for Product model."""
 
-    list_display = ['name', 'category', 'base_price', 'is_active', 'created_at']
-    list_filter = ['category', 'is_active', 'created_at']
+    list_display = ['name', 'category', 'slug', 'base_price', 'is_active', 'created_at', 'is_featured', 'is_trending']
+    list_filter = ['category', 'is_active', 'created_at', 'is_featured', 'is_trending']
     search_fields = ['name', 'description']
     inlines = [PrintableAreaInline]
 

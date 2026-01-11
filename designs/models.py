@@ -11,6 +11,7 @@ class Design(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='designs')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='designs')
     name = models.CharField(max_length=255)
+    is_featured = models.BooleanField(default=False)
     design_image = models.ImageField(upload_to='designs/')
     preview_image = models.ImageField(upload_to='design_previews/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)

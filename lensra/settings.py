@@ -12,6 +12,9 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 from decouple import config
+import os
+from datetime import timedelta
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,11 +45,13 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'django_filters',
+    'rest_framework_simplejwt.token_blacklist',  # For blacklisting support
     'users',
     'products',
     'designs',
     'orders',
     'payments',
+    'wishlists',
 ]
 
 MIDDLEWARE = [
@@ -79,6 +84,8 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'lensra.wsgi.application'
+
+
 
 
 # Database
@@ -161,6 +168,7 @@ AUTH_USER_MODEL = 'users.User'
 # REST Framework Settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
@@ -169,6 +177,13 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  # Short-lived access
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+    'BLACKLIST_AFTER_ROTATION': True,  # Enable for logout blacklisting
+    # Other settings as needed
 }
 
 # CORS Settings

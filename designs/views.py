@@ -3,6 +3,20 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import Design
 from .serializers import DesignSerializer, DesignCreateSerializer
+from rest_framework.permissions import AllowAny
+
+
+class FeaturedDesignListView(generics.ListAPIView):
+    """
+    View for listing featured designs.
+    Used on homepage / discovery pages.
+    """
+
+    serializer_class = DesignSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        return Design.objects.filter(is_featured=True).order_by('-created_at')
 
 
 class DesignListCreateView(generics.ListCreateAPIView):
