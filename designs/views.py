@@ -35,10 +35,8 @@ class DesignListCreateView(generics.ListCreateAPIView):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
-class DesignDetailView(generics.RetrieveDestroyAPIView):
-    """View for retrieving and deleting a design."""
-
+class DesignDetailView(generics.RetrieveUpdateDestroyAPIView): # Added Update
+    """View for retrieving, updating, and deleting a design."""
     serializer_class = DesignSerializer
     permission_classes = [IsAuthenticated]
 

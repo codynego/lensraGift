@@ -27,3 +27,38 @@ class UserAdmin(BaseUserAdmin):
             'fields': ('email', 'password1', 'password2', 'is_staff', 'is_active'),
         }),
     )
+
+
+from django.contrib import admin
+from .models import Address
+
+@admin.register(Address)
+class AddressAdmin(admin.ModelAdmin):
+    list_display = (
+        'full_name', 
+        'user', 
+        'address_type', 
+        'city', 
+        'state', 
+        'is_default', 
+        'created_at'
+    )
+    list_filter = ('address_type', 'is_default', 'state', 'country')
+    search_fields = ('full_name', 'user__email', 'street_address', 'city', 'phone_number')
+    readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('Ownership', {
+            'fields': ('user', 'address_type', 'is_default')
+        }),
+        ('Recipient Details', {
+            'fields': ('full_name', 'phone_number')
+        }),
+        ('Location Details', {
+            'fields': ('street_address', 'apartment_suite', 'city', 'state', 'postal_code', 'country')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
