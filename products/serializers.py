@@ -35,7 +35,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'name', 'slug', 'base_price', 'image', 
-            'is_featured', 'is_customizable', 'printable_areas' # Add this
+            'is_featured', 'is_customizable', 'printable_areas', 'is_trending'
         ]
 class DesignPlacementSerializer(serializers.ModelSerializer):
     # These fields pull data from the related models for the frontend to use
