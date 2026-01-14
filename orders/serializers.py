@@ -1,35 +1,63 @@
 from rest_framework import serializers
 from .models import CartItem, Order, OrderItem
-from products.serializers import DesignPlacementSerializer # Import your existing serializer
+from products.serializers import DesignPlacementSerializer, ProductSerializer # Import your existing serializer
+from rest_framework import serializers
+from .models import CartItem, Product, DesignPlacement
 
 class CartItemSerializer(serializers.ModelSerializer):
-    # Use the updated placement serializer above
+    # These read-only fields will pull the full objects
+    product_details = ProductSerializer(source='product', read_only=True)
     placement_details = DesignPlacementSerializer(source='placement', read_only=True)
-    total_price = serializers.ReadOnlyField()
+    
+    # Keep these for writing (adding to cart)
+    product = serializers.PrimaryKeyRelatedField(
+        queryset=Product.objects.all(), required=False, allow_null=True
+    )
+    placement = serializers.PrimaryKeyRelatedField(
+        queryset=DesignPlacement.objects.all(), required=False, allow_null=True
+    )
 
     class Meta:
         model = CartItem
-        fields = ['id', 'placement', 'placement_details', 'quantity', 'total_price', 'added_at']
-        read_only_fields = ['id', 'added_at']
-
-
-class OrderItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source='placement.product.name', read_only=True)
-    design_preview = serializers.ImageField(source='placement.design.preview_image', read_only=True)
-
-    class Meta:
-        model = OrderItem
-        fields = ['id', 'product_name', 'design_preview', 'quantity', 'unit_price', 'subtotal']
+        fields = [
+            'id', 'product', 'product_details', 
+            'placement', 'placement_details', 
+            'quantity', 'total_price'
+        ]
 
 
 import uuid
 from rest_framework import serializers
 from .models import Order, OrderItem, CartItem
-from products.models import DesignPlacement
+from products.models import DesignPlacement, Product
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.SerializerMethodField()
+    design_preview = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OrderItem
+        fields = ['id', 'product_name', 'design_preview', 'quantity', 'unit_price', 'subtotal']
+
+    def get_product_name(self, obj):
+        # Check placement first, then fallback to plain product
+        if obj.placement and obj.placement.product:
+            return obj.placement.product.name
+        if obj.product:
+            return obj.product.name
+        return "Unknown Product"
+
+    def get_design_preview(self, obj):
+        # Only return a design preview if it's a custom placement
+        if obj.placement and obj.placement.design:
+            request = self.context.get('request')
+            if obj.placement.design.preview_image:
+                photo_url = obj.placement.design.preview_image.url
+                return request.build_absolute_uri(photo_url) if request else photo_url
+        return None
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
-    # Include guest_email so the frontend can display who bought it if no user exists
     customer_email = serializers.SerializerMethodField()
     
     class Meta:
@@ -46,8 +74,6 @@ class OrderSerializer(serializers.ModelSerializer):
         return obj.user.email if obj.user else obj.guest_email
 
 class OrderCreateSerializer(serializers.ModelSerializer):
-    """Handles checkout for both logged-in users and guests."""
-    # This field allows the frontend to send the local_cart array if the user is a guest
     items_data = serializers.JSONField(write_only=True, required=False)
 
     class Meta:
@@ -62,68 +88,83 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         user = request.user if request.user and request.user.is_authenticated else None
         items_data = validated_data.pop('items_data', None)
         
-        # 1. Determine the source of the items
         items_to_process = []
         
         if user:
-            # Source: Database Cart
             cart_items = CartItem.objects.filter(user=user)
             if not cart_items.exists():
-                raise serializers.ValidationError({"error": "Your database cart is empty."})
-            for item in cart_items:
-                items_to_process.append({
-                    'placement': item.placement,
-                    'quantity': item.quantity,
-                    'price': item.placement.product.base_price
-                })
-        else:
-            # Source: Local Storage (items_data sent from frontend)
-            if not items_data:
-                raise serializers.ValidationError({"error": "No items provided for guest checkout."})
-            if not validated_data.get('guest_email'):
-                raise serializers.ValidationError({"guest_email": "Email is required for guest checkout."})
+                raise serializers.ValidationError({"error": "Your bag is empty."})
             
-            for item in items_data:
-                try:
-                    # Expecting item to have placement ID from local storage
-                    placement_id = item.get('placement_details', {}).get('id') or item.get('placement')
-                    placement = DesignPlacement.objects.get(id=placement_id)
-                    items_to_process.append({
-                        'placement': placement,
-                        'quantity': item.get('quantity', 1),
-                        'price': placement.product.base_price
-                    })
-                except DesignPlacement.DoesNotExist:
+            for item in cart_items:
+                if item.placement:
+                    price = item.placement.product.base_price
+                elif item.product:
+                    price = item.product.base_price
+                else:
                     continue
 
-        # 2. Create the Order
+                items_to_process.append({
+                    'placement': item.placement,
+                    'product': item.product,
+                    'quantity': item.quantity,
+                    'price': price
+                })
+        else:
+            if not items_data:
+                raise serializers.ValidationError({"error": "No items provided."})
+            
+            for item in items_data:
+                # Support multiple naming conventions from local storage
+                p_id = item.get('product_id') or item.get('product')
+                pl_id = item.get('placement') or item.get('placement_details', {}).get('id')
+
+                if pl_id:
+                    try:
+                        placement = DesignPlacement.objects.get(id=pl_id)
+                        items_to_process.append({
+                            'placement': placement,
+                            'product': None,
+                            'quantity': item.get('quantity', 1),
+                            'price': placement.product.base_price
+                        })
+                    except DesignPlacement.DoesNotExist: continue
+                elif p_id:
+                    try:
+                        product = Product.objects.get(id=p_id)
+                        items_to_process.append({
+                            'placement': None,
+                            'product': product,
+                            'quantity': item.get('quantity', 1),
+                            'price': product.base_price
+                        })
+                    except Product.DoesNotExist: continue
+
         order = Order.objects.create(
             user=user,
             order_number=str(uuid.uuid4()).split('-')[0].upper(),
-            total_amount=0, # Placeholder
+            total_amount=0,
             **validated_data
         )
 
-        # 3. Create OrderItems and calculate total
         total = 0
         for item in items_to_process:
             unit_price = item['price']
-            subtotal = unit_price * item['quantity']
+            qty = item['quantity']
+            subtotal = unit_price * qty
             
             OrderItem.objects.create(
                 order=order,
                 placement=item['placement'],
-                quantity=item['quantity'],
+                product=item['product'],
+                quantity=qty,
                 unit_price=unit_price,
                 subtotal=subtotal
             )
             total += subtotal
 
-        # 4. Finalize order amount
         order.total_amount = total
         order.save()
 
-        # 5. Cleanup: If user was logged in, clear their DB cart
         if user:
             CartItem.objects.filter(user=user).delete()
             

@@ -1,44 +1,65 @@
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status, permissions
 from .models import Design
 from .serializers import DesignSerializer, DesignCreateSerializer
 from rest_framework.permissions import AllowAny
 
 
-class FeaturedDesignListView(generics.ListAPIView):
-    """
-    View for listing featured designs.
-    Used on homepage / discovery pages.
-    """
-
-    serializer_class = DesignSerializer
+class DesignListCreateView(APIView):
+    # Change this to AllowAny so guests can POST
     permission_classes = [AllowAny]
 
-    def get_queryset(self):
-        return Design.objects.filter(is_featured=True).order_by('-created_at')
+    def get(self, request):
+        # Keep your existing check for the GET list
+        if not request.user.is_authenticated:
+            return Response({"detail": "Authentication required to view designs."}, status=401)
+        
+        designs = Design.objects.filter(user=request.user)
+        serializer = DesignSerializer(designs, many=True)
+        return Response(serializer.data)
 
+    def post(self, request):
+        serializer = DesignCreateSerializer(
+            data=request.data, 
+            context={'request': request}
+        )
+        
+        if serializer.is_valid():
+            user = request.user if request.user.is_authenticated else None
+            # Also capture session_id if you added it to your model
+            session_id = request.data.get('session_id')
+            
+            design = serializer.save(user=user, session_id=session_id)
+            
+            return Response(
+                DesignSerializer(design).data, 
+                status=status.HTTP_201_CREATED
+            )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class DesignListCreateView(generics.ListCreateAPIView):
-    """View for listing and creating designs."""
+class DesignDetailView(APIView):
+    """Retrieve or delete a specific design."""
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
-    permission_classes = [IsAuthenticated]
+    def get_object(self, pk):
+        try:
+            return Design.objects.get(pk=pk)
+        except Design.DoesNotExist:
+            return None
 
-    def get_serializer_class(self):
-        if self.request.method == 'POST':
-            return DesignCreateSerializer
-        return DesignSerializer
+    def get(self, request, pk):
+        design = self.get_object(pk)
+        if not design:
+            return Response({"error": "Design not found"}, status=404)
+        serializer = DesignSerializer(design)
+        return Response(serializer.data)
 
-    def get_queryset(self):
-        return Design.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-class DesignDetailView(generics.RetrieveUpdateDestroyAPIView): # Added Update
-    """View for retrieving, updating, and deleting a design."""
-    serializer_class = DesignSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return Design.objects.filter(user=self.request.user)
+    def delete(self, request, pk):
+        design = self.get_object(pk)
+        # Only owner can delete
+        if design and design.user == request.user:
+            design.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"error": "Unauthorized"}, status=403)

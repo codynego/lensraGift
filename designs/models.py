@@ -1,17 +1,29 @@
 from django.db import models
 from django.conf import settings
-from PIL import Image
-import os
-
 
 class Design(models.Model):
-    """User-uploaded designs for customizing products."""
-
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='designs')
-    name = models.CharField(max_length=255)
+    """
+    The main container for a custom design session. 
+    Stores the high-level instructions and the final rendered preview.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='designs',
+        null=True, blank=True  # Allow guest designs if needed
+    )
+    name = models.CharField(max_length=255, blank=True)
+    
+    # Customization Data from the Editor
+    custom_text = models.CharField(max_length=255, blank=True, null=True)
+    overall_instructions = models.TextField(blank=True, null=True)
+    session_id = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+    
+    # Visuals
+    preview_image = models.ImageField(upload_to='designs/previews/', null=True, blank=True)
     is_featured = models.BooleanField(default=False)
-    design_data = models.JSONField(null=True, blank=True)  # Store Fabric.js canvas JSON
-    preview_image = models.ImageField(upload_to='designs/', null=True, blank=True)  # Store preview PNG
+    
+    # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -19,4 +31,23 @@ class Design(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.name} by {self.user.email}"
+        user_email = self.user.email if self.user else "Guest"
+        return f"Design {self.id} ({self.name or 'Untitled'}) by {user_email}"
+
+
+class DesignImage(models.Model):
+    """
+    Stores individual images uploaded within a single design session,
+    along with specific placement notes for each.
+    """
+    design = models.ForeignKey(
+        Design, 
+        on_delete=models.CASCADE, 
+        related_name='images'
+    )
+    image = models.ImageField(upload_to='designs/assets/%Y/%m/%d/')
+    placement_note = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Asset for Design {self.design.id}"

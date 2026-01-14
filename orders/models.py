@@ -6,33 +6,17 @@ from products.models import Product, DesignPlacement
 from designs.models import Design
 
 class CartItem(models.Model):
-    """Temporary items stored before checkout."""
-    # Fixed: Use settings.AUTH_USER_MODEL for consistency
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.CASCADE, 
-        related_name='cart_items'
-    )
-    # Fixed: Ensure DesignPlacement is imported or referenced as string
-    placement = models.ForeignKey(
-        DesignPlacement, 
-        on_delete=models.CASCADE,
-        related_name='cart_entries'
-    )
-    quantity = models.PositiveIntegerField(
-        default=1, 
-        validators=[MinValueValidator(1)]
-    )
-    added_at = models.DateTimeField(auto_now_add=True)
-
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    placement = models.ForeignKey(DesignPlacement, on_delete=models.SET_NULL, null=True, blank=True)
+    product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
+    quantity = models.PositiveIntegerField(default=1)
+    
     @property
     def total_price(self):
-        # Calculates price based on the product associated with the placement
-        return self.placement.product.base_price * self.quantity
-
-    def __str__(self):
-        return f"{self.user.email}'s cart: {self.placement.product.name}"
-
+        # Logic to pick price from placement or product
+        if self.placement:
+            return self.placement.product.base_price * self.quantity
+        return self.product.base_price * self.quantity
 
 from django.db import models
 from django.conf import settings
@@ -92,15 +76,10 @@ class Order(models.Model):
         owner = self.user.email if self.user else self.guest_email
         return f"Order {self.order_number} ({owner})"
 
-
 class OrderItem(models.Model):
-    """Items snapshot at the moment of purchase."""
-    order = models.ForeignKey(
-        Order, 
-        on_delete=models.CASCADE, 
-        related_name='items'
-    )
-    # Fixed: Pointing to placement preserves the design data/mockup for production
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
+    
+    # Custom design
     placement = models.ForeignKey(
         DesignPlacement, 
         on_delete=models.PROTECT, 
@@ -108,18 +87,29 @@ class OrderItem(models.Model):
         blank=True,
         null=True
     )
-    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
+    # NEW: Plain product reference
+    product = models.ForeignKey(
+        'products.Product', # Adjust the app name string if necessary
+        on_delete=models.PROTECT,
+        blank=True,
+        null=True
+    )
     
-    # We store these as hard values in case the product price changes in the future
+    quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
 
     def __str__(self):
-        return f"{self.quantity}x {self.placement.product.name} (Order: {self.order.order_number})"
+        name = self.placement.product.name if self.placement else self.product.name
+        return f"{self.quantity}x {name} (Order: {self.order.order_number})"
 
     def save(self, *args, **kwargs):
-        """Auto-calculate subtotal and pull current price if not set."""
+        # Handle price lookup safely
         if not self.unit_price:
-            self.unit_price = self.placement.product.base_price
+            if self.placement:
+                self.unit_price = self.placement.product.base_price
+            elif self.product:
+                self.unit_price = self.product.base_price
+                
         self.subtotal = self.quantity * self.unit_price
         super().save(*args, **kwargs)

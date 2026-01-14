@@ -30,18 +30,43 @@ class OrderAdmin(admin.ModelAdmin):
     
     inlines = [OrderItemInline]
 
+from django.contrib import admin
+from .models import CartItem
+
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ('user', 'product_name', 'design_name', 'quantity', 'added_at')
-    list_filter = ('added_at',)
-    search_fields = ('user__email',)
+    # Display these columns in the list view
+    list_display = ('id', 'user', 'get_item_name', 'quantity', 'get_total_price')
+    list_filter = ('user',)
+    search_fields = ('user__username', 'product__name', 'placement__design__name')
 
-    # Helper methods to show linked data in the list view
-    def product_name(self, obj):
-        return obj.placement.product.name
-    
-    def design_name(self, obj):
-        return obj.placement.design.name
+    def get_item_name(self, obj):
+        """Displays the Custom Design name or the Plain Product name."""
+        if obj.placement:
+            return f"Custom: {obj.placement.product.name} ({obj.placement.design.name})"
+        if obj.product:
+            return f"Plain: {obj.product.name}"
+        return "Unknown Item"
+    get_item_name.short_description = 'Item'
+
+    def get_total_price(self, obj):
+        """Displays the calculated total price from the model property."""
+        return f"₦{obj.total_price:,.2f}"
+    get_total_price.short_description = 'Total Price'
+
+    # Organize the detail view
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user',)
+        }),
+        ('Item Selection', {
+            'description': 'Provide EITHER a Placement (Custom) or a Product (Plain).',
+            'fields': ('placement', 'product')
+        }),
+        ('Order Details', {
+            'fields': ('quantity',)
+        }),
+    )
 
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):

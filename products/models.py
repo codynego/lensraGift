@@ -9,12 +9,18 @@ class Category(models.Model):
 
     class Meta:
         verbose_name_plural = "Categories"
-    def __str__(self): return self.name
+    
+    def __str__(self): 
+        return self.name
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True)
-    base_price = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)])
+    base_price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        validators=[MinValueValidator(0.01)]
+    )
     category = models.ForeignKey(
         Category, 
         on_delete=models.SET_NULL, 
@@ -29,23 +35,48 @@ class Product(models.Model):
     is_trending = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
 
-    def __str__(self): return self.name
+    def __str__(self): 
+        return self.name
 
 class PrintableArea(models.Model):
-    """ Defines where the canvas sits on the product image. """
+    """ 
+    Defines available zones (Front, Back, Sleeve) for a product. 
+    Coordinates are now optional, allowing for label-based placement.
+    """
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="printable_areas")
-    name = models.CharField(max_length=100) # e.g. "Front Center"
-    x = models.PositiveIntegerField(default=0) # Top-left X coordinate on the product image
-    y = models.PositiveIntegerField(default=0) # Top-left Y coordinate
-    width = models.PositiveIntegerField()      # Canvas width
-    height = models.PositiveIntegerField()     # Canvas height
+    name = models.CharField(max_length=100) # e.g. "Front Center", "Back", "Left Sleeve"
+    
+    # Coordinates made optional for asset-based flow
+    x = models.PositiveIntegerField(default=0, null=True, blank=True) 
+    y = models.PositiveIntegerField(default=0, null=True, blank=True)
+    width = models.PositiveIntegerField(null=True, blank=True)      
+    height = models.PositiveIntegerField(null=True, blank=True)     
 
-
+    def __str__(self):
+        return f"{self.product.name} - {self.name}"
 
 class DesignPlacement(models.Model):
-    """ The link between a Design and a specific Product Area. """
-    design = models.ForeignKey(Design, on_delete=models.CASCADE)
+    """ 
+    The final 'configured' product. Links a specific Design session 
+    to a Product. This is what gets added to the Cart.
+    """
+    design = models.ForeignKey(Design, on_delete=models.CASCADE, related_name="placements")
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    printable_area = models.ForeignKey(PrintableArea, on_delete=models.CASCADE)
-    layout_data = models.JSONField() # JSON specifically scaled for this area
-    preview_mockup = models.ImageField(upload_to="mockups/", null=True) # Design overlaid on Product
+    
+    # Made optional because the user's 'Overall Instructions' might define placement
+    printable_area = models.ForeignKey(
+        PrintableArea, 
+        on_delete=models.SET_NULL, 
+        null=True, blank=True
+    )
+    
+    # layout_data remains for any specific scale/positioning metadata if needed
+    layout_data = models.JSONField(null=True, blank=True) 
+    
+    # The generated image of the customized product
+    preview_mockup = models.ImageField(upload_to="mockups/", null=True, blank=True) 
+    
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+
+    def __str__(self):
+        return f"Placement: {self.product.name} ({self.design.id})"

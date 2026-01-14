@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'orders',
     'payments',
     'wishlists',
+    'rewards'
 ]
 
 MIDDLEWARE = [
@@ -180,7 +181,7 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),  # Short-lived access
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # Short-lived access
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
     'BLACKLIST_AFTER_ROTATION': True,  # Enable for logout blacklisting
     # Other settings as needed

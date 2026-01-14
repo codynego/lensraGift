@@ -27,6 +27,7 @@ urlpatterns = [
     path('api/orders/', include('orders.urls')),
     path('api/payments/', include('payments.urls')),
     path('api/wishlists/', include('wishlists.urls')),
+    path('api/rewards/', include('rewards.urls')),
 ]
 
 if settings.DEBUG:

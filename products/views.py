@@ -1,5 +1,5 @@
 from rest_framework import generics, filters
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Product, DesignPlacement, Category
 from .serializers import (
@@ -40,7 +40,7 @@ class DesignPlacementCreateView(generics.CreateAPIView):
     """
     queryset = DesignPlacement.objects.all()
     serializer_class = DesignPlacementSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
         # Additional logic can be added here, like linking to a user session

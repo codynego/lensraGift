@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import Product, PrintableArea, DesignPlacement, Category
-from designs.models import Design # Assuming Design is in a separate app
+from designs.models import Design 
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,7 +8,7 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug']
 
 class PrintableAreaSerializer(serializers.ModelSerializer):
-    """Provides coordinates to the React frontend to position the Fabric.js canvas."""
+    """Provides coordinates or labels for placement zones."""
     class Meta:
         model = PrintableArea
         fields = ['id', 'name', 'x', 'y', 'width', 'height']
@@ -25,10 +25,11 @@ class ProductSerializer(serializers.ModelSerializer):
             'is_customizable', 'printable_areas', 'category_name',
             'is_featured', 'is_trending', 'is_active'
         ]
-        read_only_fields = ['id', 'is_trending', 'is_Featured', 'is_active', 'is_customizable']
+        # Fixed typo from 'is_Featured' to 'is_featured'
+        read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable']
 
 class ProductListSerializer(serializers.ModelSerializer):
-    # This line is crucial! It nests the areas inside the product object
+    """Simplified view for the product grid."""
     printable_areas = PrintableAreaSerializer(many=True, read_only=True)
 
     class Meta:
@@ -37,14 +38,21 @@ class ProductListSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'base_price', 'image', 
             'is_featured', 'is_customizable', 'printable_areas', 'is_trending'
         ]
+
 class DesignPlacementSerializer(serializers.ModelSerializer):
-    # These fields pull data from the related models for the frontend to use
+    """
+    Connects a specific Product to a specific Design.
+    This is what actually goes into the Cart.
+    """
     product_name = serializers.ReadOnlyField(source='product.name')
     product_image = serializers.ImageField(source='product.image', read_only=True)
     product_price = serializers.ReadOnlyField(source='product.base_price')
     
+    # Updated to match the new Design model fields
     design_name = serializers.ReadOnlyField(source='design.name')
-    design_image = serializers.ImageField(source='design.preview_image', read_only=True)
+    design_preview = serializers.ImageField(source='design.preview_image', read_only=True)
+    custom_text = serializers.ReadOnlyField(source='design.custom_text')
+    overall_instructions = serializers.ReadOnlyField(source='design.overall_instructions')
 
     class Meta:
         model = DesignPlacement
@@ -52,12 +60,19 @@ class DesignPlacementSerializer(serializers.ModelSerializer):
             'id', 'design', 'product', 'printable_area', 
             'layout_data', 'preview_mockup',
             'product_name', 'product_image', 'product_price',
-            'design_name', 'design_image'
+            'design_name', 'design_preview', 'custom_text', 'overall_instructions'
         ]
 
     def validate(self, data):
-        if data['printable_area'].product != data['product']:
-            raise serializers.ValidationError(
-                {"printable_area": "This area does not belong to the selected product."}
-            )
+        """
+        Validates that the selected printable area (if any) belongs to the product.
+        """
+        product = data.get('product')
+        printable_area = data.get('printable_area')
+
+        if printable_area and product:
+            if printable_area.product != product:
+                raise serializers.ValidationError(
+                    {"printable_area": "This area does not belong to the selected product."}
+                )
         return data
