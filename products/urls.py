@@ -3,7 +3,9 @@ from .views import (
     ProductListView, 
     ProductDetailView, 
     DesignPlacementCreateView,
-    CategoryListView # Renamed for consistency with your View
+    CategoryListView,
+    FeaturedProductsView
+     # Renamed for consistency with your View
 )
 
 app_name = 'products'
@@ -20,4 +22,6 @@ urlpatterns = [
 
     # GET: List all product categories
     path('categories/', CategoryListView.as_view(), name='category-list'),
+    # GET: List featured products
+    path('featured/', FeaturedProductsView.as_view(), name='featured-products'),
 ]

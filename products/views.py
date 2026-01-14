@@ -47,4 +47,11 @@ class DesignPlacementCreateView(generics.CreateAPIView):
         serializer.save()
 
 
+class FeaturedProductsView(generics.ListAPIView):
+    """Returns a list of featured products for homepage highlights."""
+    queryset = Product.objects.filter(is_active=True, is_featured=True)
+    serializer_class = ProductListSerializer
+    permission_classes = [AllowAny]
+
+
 

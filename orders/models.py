@@ -6,17 +6,35 @@ from products.models import Product, DesignPlacement
 from designs.models import Design
 
 class CartItem(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # Nullable user to support guest sessions
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        null=True, 
+        blank=True,
+        related_name='cart_items'
+    )
+    # The key for guests
+    session_id = models.CharField(max_length=100, null=True, blank=True, db_index=True)
+    
     placement = models.ForeignKey(DesignPlacement, on_delete=models.SET_NULL, null=True, blank=True)
     product = models.ForeignKey(Product, on_delete=models.SET_NULL, null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
-    
+
     @property
     def total_price(self):
-        # Logic to pick price from placement or product
-        if self.placement:
+        # Always prioritize placement price if it exists
+        if self.placement and self.placement.product:
             return self.placement.product.base_price * self.quantity
-        return self.product.base_price * self.quantity
+        if self.product:
+            return self.product.base_price * self.quantity
+        return 0
+
+    def __str__(self):
+        owner = self.user.email if self.user else f"Guest ({self.session_id[:8]})"
+        item_name = self.placement.product.name if self.placement else (self.product.name if self.product else "Unknown")
+        return f"{owner} - {item_name}"
+
 
 from django.db import models
 from django.conf import settings
@@ -60,7 +78,7 @@ class Order(models.Model):
     shipping_country = models.CharField(max_length=100, default='Nigeria')
     shipping_postal_code = models.CharField(max_length=20, blank=True)
     phone_number = models.CharField(max_length=20)
-    
+    session_id = models.CharField(max_length=100, null=True, blank=True, db_index=True)
     # Payment Information
     payment_reference = models.CharField(max_length=255, blank=True, null=True)
     is_paid = models.BooleanField(default=False)
@@ -73,8 +91,8 @@ class Order(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        owner = self.user.email if self.user else self.guest_email
-        return f"Order {self.order_number} ({owner})"
+            owner = self.user.email if self.user else (self.guest_email or f"Guest {self.session_id[:8]}")
+            return f"Order {self.order_number} ({owner})"
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')

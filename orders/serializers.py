@@ -22,7 +22,7 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'product', 'product_details', 
             'placement', 'placement_details', 
-            'quantity', 'total_price'
+            'quantity', 'total_price', 'session_id'
         ]
 
 
@@ -73,91 +73,89 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_customer_email(self, obj):
         return obj.user.email if obj.user else obj.guest_email
 
+
+
 class OrderCreateSerializer(serializers.ModelSerializer):
     items_data = serializers.JSONField(write_only=True, required=False)
+    session_id = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Order
         fields = [
             'shipping_address', 'shipping_city', 'shipping_state', 
-            'shipping_country', 'phone_number', 'guest_email', 'items_data'
+            'shipping_country', 'phone_number', 'guest_email', 
+            'items_data', 'session_id'
         ]
 
     def create(self, validated_data):
         request = self.context.get('request')
         user = request.user if request.user and request.user.is_authenticated else None
         items_data = validated_data.pop('items_data', None)
+        session_id = validated_data.pop('session_id', None)
         
         items_to_process = []
-        
-        if user:
-            cart_items = CartItem.objects.filter(user=user)
-            if not cart_items.exists():
-                raise serializers.ValidationError({"error": "Your bag is empty."})
-            
-            for item in cart_items:
-                if item.placement:
-                    price = item.placement.product.base_price
-                elif item.product:
-                    price = item.product.base_price
-                else:
-                    continue
+        cart_queryset = None
 
+        # 1. IDENTIFY THE SOURCE OF ITEMS
+        if user:
+            cart_queryset = CartItem.objects.filter(user=user)
+        elif session_id:
+            cart_queryset = CartItem.objects.filter(session_id=session_id)
+
+        # 2. PROCESS DATABASE ITEMS (User or Session)
+        if cart_queryset and cart_queryset.exists():
+            for item in cart_queryset:
+                price = item.placement.product.base_price if item.placement else item.product.base_price
                 items_to_process.append({
                     'placement': item.placement,
                     'product': item.product,
                     'quantity': item.quantity,
                     'price': price
                 })
-        else:
-            if not items_data:
-                raise serializers.ValidationError({"error": "No items provided."})
-            
+        # 3. FALLBACK TO MANUAL DATA (Legacy/LocalStorage)
+        elif items_data:
             for item in items_data:
-                # Support multiple naming conventions from local storage
                 p_id = item.get('product_id') or item.get('product')
                 pl_id = item.get('placement') or item.get('placement_details', {}).get('id')
 
                 if pl_id:
-                    try:
-                        placement = DesignPlacement.objects.get(id=pl_id)
+                    placement = DesignPlacement.objects.filter(id=pl_id).first()
+                    if placement:
                         items_to_process.append({
-                            'placement': placement,
-                            'product': None,
+                            'placement': placement, 'product': None,
                             'quantity': item.get('quantity', 1),
                             'price': placement.product.base_price
                         })
-                    except DesignPlacement.DoesNotExist: continue
                 elif p_id:
-                    try:
-                        product = Product.objects.get(id=p_id)
+                    product = Product.objects.filter(id=p_id).first()
+                    if product:
                         items_to_process.append({
-                            'placement': None,
-                            'product': product,
+                            'placement': None, 'product': product,
                             'quantity': item.get('quantity', 1),
                             'price': product.base_price
                         })
-                    except Product.DoesNotExist: continue
 
+        if not items_to_process:
+            raise serializers.ValidationError({"error": "Your bag is empty or items could not be found."})
+
+        # 4. CREATE THE ORDER
         order = Order.objects.create(
             user=user,
-            order_number=str(uuid.uuid4()).split('-')[0].upper(),
+            session_id=session_id, # Link the guest session to the order
+            order_number=f"LRG-{uuid.uuid4().hex[:8].upper()}",
             total_amount=0,
             **validated_data
         )
 
         total = 0
         for item in items_to_process:
-            unit_price = item['price']
-            qty = item['quantity']
-            subtotal = unit_price * qty
-            
+            subtotal = item['price'] * item['quantity']
             OrderItem.objects.create(
                 order=order,
                 placement=item['placement'],
                 product=item['product'],
-                quantity=qty,
-                unit_price=unit_price,
+                quantity=item['quantity'],
+                unit_price=item['price'],
                 subtotal=subtotal
             )
             total += subtotal
@@ -165,7 +163,8 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         order.total_amount = total
         order.save()
 
-        if user:
-            CartItem.objects.filter(user=user).delete()
+        # 5. CLEANUP CART
+        if cart_queryset:
+            cart_queryset.delete()
             
         return order
