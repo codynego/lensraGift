@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import Product, PrintableArea, DesignPlacement, Category
+from .models import (
+    Product, ProductImage, PrintableArea, DesignPlacement, 
+    Category, Attribute, AttributeValue, ProductVariant
+)
 from designs.models import Design 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -7,48 +10,72 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name', 'slug']
 
+# --- NEW IMAGE SERIALIZER ---
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    """Serializer for the additional gallery images."""
+    class Meta:
+        model = ProductImage
+        fields = ['id', 'image', 'alt_text']
+
+# --- ATTRIBUTE SERIALIZERS ---
+
+class AttributeValueSerializer(serializers.ModelSerializer):
+    attribute_name = serializers.CharField(source='attribute.name', read_only=True)
+
+    class Meta:
+        model = AttributeValue
+        fields = ['id', 'attribute_name', 'value']
+
+class ProductVariantSerializer(serializers.ModelSerializer):
+    attributes = AttributeValueSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = ProductVariant
+        fields = ['id', 'attributes', 'price_override', 'stock_quantity']
+
+# --- PRODUCT SERIALIZERS ---
+
 class PrintableAreaSerializer(serializers.ModelSerializer):
-    """Provides coordinates or labels for placement zones."""
     class Meta:
         model = PrintableArea
         fields = ['id', 'name', 'x', 'y', 'width', 'height']
 
 class ProductSerializer(serializers.ModelSerializer):
-    """Detailed view for the Editor: includes all print zones."""
+    """Detailed view for Product Page and Editor."""
     printable_areas = PrintableAreaSerializer(many=True, read_only=True)
+    variants = ProductVariantSerializer(many=True, read_only=True)
+    # NEW: Include the gallery images
+    gallery = ProductImageSerializer(many=True, read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'slug', 'base_price', 'image', 
-            'is_customizable', 'printable_areas', 'category_name',
+            'id', 'name', 'slug', 'base_price', 'image', 'gallery', # Added gallery
+            'min_order_quantity', 'description', 'is_customizable', 
+            'printable_areas', 'variants', 'category_name',
             'is_featured', 'is_trending', 'is_active'
         ]
-        # Fixed typo from 'is_Featured' to 'is_featured'
         read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable']
 
 class ProductListSerializer(serializers.ModelSerializer):
-    """Simplified view for the product grid."""
-    printable_areas = PrintableAreaSerializer(many=True, read_only=True)
+    """Simplified view for the product grid/shop home."""
+    variants = ProductVariantSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'slug', 'base_price', 'image', 
-            'is_featured', 'is_customizable', 'printable_areas', 'is_trending'
+            'min_order_quantity', 'is_featured', 'is_customizable', 
+            'is_trending', 'variants'
         ]
 
 class DesignPlacementSerializer(serializers.ModelSerializer):
-    """
-    Connects a specific Product to a specific Design.
-    This is what actually goes into the Cart.
-    """
     product_name = serializers.ReadOnlyField(source='product.name')
     product_image = serializers.ImageField(source='product.image', read_only=True)
     product_price = serializers.ReadOnlyField(source='product.base_price')
     
-    # Updated to match the new Design model fields
     design_name = serializers.ReadOnlyField(source='design.name')
     design_preview = serializers.ImageField(source='design.preview_image', read_only=True)
     custom_text = serializers.ReadOnlyField(source='design.custom_text')
@@ -64,9 +91,6 @@ class DesignPlacementSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, data):
-        """
-        Validates that the selected printable area (if any) belongs to the product.
-        """
         product = data.get('product')
         printable_area = data.get('printable_area')
 

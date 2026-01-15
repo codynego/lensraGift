@@ -1,17 +1,20 @@
+import uuid
 from rest_framework import serializers
 from .models import CartItem, Order, OrderItem
-from products.serializers import DesignPlacementSerializer, ProductSerializer # Import your existing serializer
-from rest_framework import serializers
-from .models import CartItem, Product, DesignPlacement
+from products.models import Product, DesignPlacement, ProductVariant
+from products.serializers import ProductSerializer, DesignPlacementSerializer, ProductVariantSerializer
 
+# 1. CART ITEM SERIALIZER
 class CartItemSerializer(serializers.ModelSerializer):
-    # These read-only fields will pull the full objects
     product_details = ProductSerializer(source='product', read_only=True)
     placement_details = DesignPlacementSerializer(source='placement', read_only=True)
+    # NEW: Full details for the selected size/color
+    variant_details = ProductVariantSerializer(source='variant', read_only=True)
     
-    # Keep these for writing (adding to cart)
-    product = serializers.PrimaryKeyRelatedField(
-        queryset=Product.objects.all(), required=False, allow_null=True
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects.all())
+    # NEW: Field to send when adding to cart
+    variant = serializers.PrimaryKeyRelatedField(
+        queryset=ProductVariant.objects.all(), required=False, allow_null=True
     )
     placement = serializers.PrimaryKeyRelatedField(
         queryset=DesignPlacement.objects.all(), required=False, allow_null=True
@@ -21,34 +24,31 @@ class CartItemSerializer(serializers.ModelSerializer):
         model = CartItem
         fields = [
             'id', 'product', 'product_details', 
+            'variant', 'variant_details',
             'placement', 'placement_details', 
             'quantity', 'total_price', 'session_id'
         ]
 
-
-import uuid
-from rest_framework import serializers
-from .models import Order, OrderItem, CartItem
-from products.models import DesignPlacement, Product
-
+# 2. ORDER ITEM SERIALIZER (Read-only for Order history)
 class OrderItemSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()
+    attributes = serializers.SerializerMethodField()
     design_preview = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderItem
-        fields = ['id', 'product_name', 'design_preview', 'quantity', 'unit_price', 'subtotal']
+        fields = ['id', 'product_name', 'attributes', 'design_preview', 'quantity', 'unit_price', 'subtotal']
 
     def get_product_name(self, obj):
-        # Check placement first, then fallback to plain product
-        if obj.placement and obj.placement.product:
-            return obj.placement.product.name
-        if obj.product:
-            return obj.product.name
-        return "Unknown Product"
+        return obj.product.name if obj.product else "Unknown Product"
+
+    def get_attributes(self, obj):
+        """Returns string like 'Color: Red, Size: XL'"""
+        if obj.variant:
+            return ", ".join([f"{a.attribute.name}: {a.value}" for a in obj.variant.attributes.all()])
+        return None
 
     def get_design_preview(self, obj):
-        # Only return a design preview if it's a custom placement
         if obj.placement and obj.placement.design:
             request = self.context.get('request')
             if obj.placement.design.preview_image:
@@ -56,25 +56,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(photo_url) if request else photo_url
         return None
 
-class OrderSerializer(serializers.ModelSerializer):
-    items = OrderItemSerializer(many=True, read_only=True)
-    customer_email = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Order
-        fields = [
-            'id', 'order_number', 'status', 'total_amount', 
-            'shipping_address', 'shipping_city', 'shipping_state', 
-            'shipping_country', 'phone_number', 'is_paid', 
-            'customer_email', 'guest_email', 'created_at', 'items'
-        ]
-        read_only_fields = ['id', 'order_number', 'total_amount', 'is_paid', 'created_at']
-
-    def get_customer_email(self, obj):
-        return obj.user.email if obj.user else obj.guest_email
-
-
-
+# 3. ORDER CREATE SERIALIZER (The Checkout Logic)
 class OrderCreateSerializer(serializers.ModelSerializer):
     items_data = serializers.JSONField(write_only=True, required=False)
     session_id = serializers.CharField(write_only=True, required=False)
@@ -96,52 +78,33 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         items_to_process = []
         cart_queryset = None
 
-        # 1. IDENTIFY THE SOURCE OF ITEMS
+        # 1. GET ITEMS FROM DATABASE (Cart)
         if user:
             cart_queryset = CartItem.objects.filter(user=user)
         elif session_id:
             cart_queryset = CartItem.objects.filter(session_id=session_id)
 
-        # 2. PROCESS DATABASE ITEMS (User or Session)
         if cart_queryset and cart_queryset.exists():
             for item in cart_queryset:
-                price = item.placement.product.base_price if item.placement else item.product.base_price
+                # PRICE LOGIC: Variant Override > Product Base Price
+                price = item.product.base_price
+                if item.variant and item.variant.price_override:
+                    price = item.variant.price_override
+
                 items_to_process.append({
-                    'placement': item.placement,
                     'product': item.product,
+                    'variant': item.variant,
+                    'placement': item.placement,
                     'quantity': item.quantity,
                     'price': price
                 })
-        # 3. FALLBACK TO MANUAL DATA (Legacy/LocalStorage)
-        elif items_data:
-            for item in items_data:
-                p_id = item.get('product_id') or item.get('product')
-                pl_id = item.get('placement') or item.get('placement_details', {}).get('id')
-
-                if pl_id:
-                    placement = DesignPlacement.objects.filter(id=pl_id).first()
-                    if placement:
-                        items_to_process.append({
-                            'placement': placement, 'product': None,
-                            'quantity': item.get('quantity', 1),
-                            'price': placement.product.base_price
-                        })
-                elif p_id:
-                    product = Product.objects.filter(id=p_id).first()
-                    if product:
-                        items_to_process.append({
-                            'placement': None, 'product': product,
-                            'quantity': item.get('quantity', 1),
-                            'price': product.base_price
-                        })
 
         if not items_to_process:
-            raise serializers.ValidationError({"error": "Your bag is empty or items could not be found."})
+            raise serializers.ValidationError({"error": "Your bag is empty."})
 
-        # 4. CREATE THE ORDER
+        # 2. CREATE THE ORDER
         order = Order.objects.create(
             user=user,
-            session_id=session_id, # Link the guest session to the order
             order_number=f"LRG-{uuid.uuid4().hex[:8].upper()}",
             total_amount=0,
             **validated_data
@@ -152,8 +115,9 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             subtotal = item['price'] * item['quantity']
             OrderItem.objects.create(
                 order=order,
-                placement=item['placement'],
                 product=item['product'],
+                variant=item['variant'], # NEW: Saves the color/size chosen
+                placement=item['placement'],
                 quantity=item['quantity'],
                 unit_price=item['price'],
                 subtotal=subtotal
@@ -163,8 +127,25 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         order.total_amount = total
         order.save()
 
-        # 5. CLEANUP CART
+        # 3. CLEANUP
         if cart_queryset:
             cart_queryset.delete()
             
         return order
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+    customer_email = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Order
+        fields = [
+            'id', 'order_number', 'status', 'total_amount', 
+            'shipping_address', 'shipping_city', 'shipping_state', 
+            'shipping_country', 'phone_number', 'is_paid', 
+            'customer_email', 'guest_email', 'created_at', 'items'
+        ]
+        read_only_fields = ['id', 'order_number', 'total_amount', 'is_paid', 'created_at']
+
+    def get_customer_email(self, obj):
+        return obj.user.email if obj.user else obj.guest_email
+

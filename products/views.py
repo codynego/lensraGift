@@ -1,5 +1,5 @@
 from rest_framework import generics, filters
-from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, AllowAny
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Product, DesignPlacement, Category
 from .serializers import (
@@ -16,42 +16,47 @@ class CategoryListView(generics.ListAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 class ProductListView(generics.ListAPIView):
-    """Main shop view: Filters and searches active products."""
-    queryset = Product.objects.filter(is_active=True).select_related('category')
+    queryset = Product.objects.filter(is_active=True)\
+        .select_related('category')\
+        .prefetch_related('variants__attributes__attribute', 'printable_areas')
+    
     serializer_class = ProductListSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
-    filterset_fields = ['category', 'is_customizable', 'is_featured', 'is_trending']
-    search_fields = ['name', 'description']
-    ordering_fields = ['base_price', 'created_at']
+    # Change 'category' to 'category__name'
+    filterset_fields = {
+        'category__name': ['exact', 'icontains'], # Allows filtering by name
+        'is_customizable': ['exact'],
+        'is_featured': ['exact'],
+        'is_trending': ['exact']
+    }
+    search_fields = ['name']
+    ordering_fields = ['base_price']
+    
 
 class ProductDetailView(generics.RetrieveAPIView):
-    """Detailed view for the editor: Loads the product + its print zones."""
-    queryset = Product.objects.filter(is_active=True)
+    """Detailed view for the editor: Loads product, print zones, and all variants."""
+    queryset = Product.objects.filter(is_active=True)\
+        .prefetch_related('variants__attributes__attribute', 'printable_areas')
+        
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'
 
 class DesignPlacementCreateView(generics.CreateAPIView):
-    """
-    Saves a specific layout (JSON) onto a product area.
-    This is called when a user finishes designing.
-    """
+    """Saves a specific layout (JSON) onto a product area."""
     queryset = DesignPlacement.objects.all()
     serializer_class = DesignPlacementSerializer
     permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
-        # Additional logic can be added here, like linking to a user session
         serializer.save()
 
-
 class FeaturedProductsView(generics.ListAPIView):
-    """Returns a list of featured products for homepage highlights."""
-    queryset = Product.objects.filter(is_active=True, is_featured=True)
+    """Returns featured products with variant data for homepage highlights."""
+    queryset = Product.objects.filter(is_active=True, is_featured=True)\
+        .prefetch_related('variants__attributes__attribute')
+        
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
-
-
-

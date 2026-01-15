@@ -40,8 +40,8 @@ class DesignListCreateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class DesignDetailView(APIView):
-    """Retrieve or delete a specific design."""
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    """Retrieve, update, or delete a specific design."""
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_object(self, pk):
         try:
@@ -52,14 +52,47 @@ class DesignDetailView(APIView):
     def get(self, request, pk):
         design = self.get_object(pk)
         if not design:
-            return Response({"error": "Design not found"}, status=404)
+            return Response({"error": "Template not found"}, status=404)
         serializer = DesignSerializer(design)
         return Response(serializer.data)
 
+    def patch(self, request, pk):
+        """Update specific fields like is_featured or name."""
+        design = self.get_object(pk)
+        
+        if not design:
+            return Response({"error": "Template not found"}, status=404)
+            
+        # Security: Only the owner can edit
+        if design.user != request.user:
+            return Response({"error": "You do not have permission to edit this template"}, status=403)
+
+        # partial=True allows us to update just one field (like is_featured)
+        serializer = DesignSerializer(design, data=request.data, partial=True)
+        
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
+
     def delete(self, request, pk):
         design = self.get_object(pk)
-        # Only owner can delete
-        if design and design.user == request.user:
+        
+        if not design:
+            return Response({"error": "Template not found"}, status=404)
+            
+        if design.user == request.user:
             design.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response({"message": "Template deleted successfully"}, status=204)
+            
         return Response({"error": "Unauthorized"}, status=403)
+
+
+class PublicDesignsView(APIView):
+    """Returns a list of public designs."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        public_designs = Design.objects.filter(is_featured=True)
+        serializer = DesignSerializer(public_designs, many=True)
+        return Response(serializer.data)

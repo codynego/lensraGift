@@ -30,6 +30,8 @@ class Product(models.Model):
     )
     
     image = models.ImageField(upload_to="products/", blank=True, null=True)
+    min_order_quantity = models.PositiveIntegerField(default=1, blank=True, null=True)
+    description = models.TextField(blank=True, null=True)
     is_customizable = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     is_trending = models.BooleanField(default=False)
@@ -37,6 +39,46 @@ class Product(models.Model):
 
     def __str__(self): 
         return self.name
+
+class ProductImage(models.Model):
+    product = models.ForeignKey(
+        Product, 
+        on_delete=models.CASCADE, 
+        related_name="gallery"
+    )
+    image = models.ImageField(upload_to="products/gallery/")
+    alt_text = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.product.name}"
+
+class Attribute(models.Model):
+    """Defines the type of attribute (e.g., Color, Size, Material)"""
+    name = models.CharField(max_length=50) # e.g., "Color"
+
+    def __str__(self):
+        return self.name
+
+class AttributeValue(models.Model):
+    """Defines the specific value (e.g., Red, Blue, XL, XXL)"""
+    attribute = models.ForeignKey(Attribute, related_name='values', on_delete=models.CASCADE)
+    value = models.CharField(max_length=50)
+
+    def __str__(self):
+        return f"{self.attribute.name}: {self.value}"
+
+class ProductVariant(models.Model):
+    """Links products to specific attribute combinations"""
+    product = models.ForeignKey(Product, related_name='variants', on_delete=models.CASCADE)
+    attributes = models.ManyToManyField(AttributeValue)
+    price_override = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    stock_quantity = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        attrs = ", ".join([str(v) for v in self.attributes.all()])
+        return f"{self.product.name} - {attrs}"
+
 
 class PrintableArea(models.Model):
     """ 
