@@ -43,7 +43,8 @@ CORS_ALLOWED_ORIGINS = [
 
 # Ensure CSRF works for your forms
 CSRF_TRUSTED_ORIGINS = [
-    "https://your-frontend-vercel-link.com",
+    "https://lensra-gift-ui.vercel.app",
+    "https://www.lensra.com",
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
