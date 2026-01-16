@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from .views import CartSummaryView
 
 urlpatterns = [
     # Cart endpoints
@@ -9,4 +10,6 @@ urlpatterns = [
     # Order endpoints
     path('orders/', views.OrderListCreateView.as_view(), name='order-list'),
     path('orders/<int:pk>/', views.OrderDetailView.as_view(), name='order-detail'),
+
+    path('cart/summary/', CartSummaryView.as_view(), name='cart-summary'),
 ]

@@ -26,6 +26,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-#kbx)$i_0zxfkob71d=d1d)so+l_9xvs5y9duoe%ras#he0cqy')
 
+from corsheaders.defaults import default_headers
+
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-session-id",  # Register your custom header here
+]
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
@@ -52,7 +58,8 @@ INSTALLED_APPS = [
     'orders',
     'payments',
     'wishlists',
-    'rewards'
+    'rewards',
+    'reseller',
 ]
 
 MIDDLEWARE = [
@@ -184,7 +191,6 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),  # Short-lived access
     'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
     'BLACKLIST_AFTER_ROTATION': True,  # Enable for logout blacklisting
-    # Other settings as needed
 }
 
 # CORS Settings
@@ -193,6 +199,13 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
 ]
 
-# Paystack Settings
-PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY', default='')
-PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY', default='')
+from decouple import Config, RepositoryEnv
+
+# If your .env is in the same folder as manage.py
+DOTENV_FILE = os.path.join(BASE_DIR, '.envt')
+config = Config(RepositoryEnv(DOTENV_FILE))
+
+
+
+PAYSTACK_SECRET_KEY = config('PAYSTACK_SECRET_KEY')
+PAYSTACK_PUBLIC_KEY = config('PAYSTACK_PUBLIC_KEY')

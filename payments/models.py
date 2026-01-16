@@ -2,9 +2,8 @@ from django.db import models
 from django.conf import settings
 from orders.models import Order
 
-
 class Payment(models.Model):
-    """Payment model for tracking payment transactions."""
+    """Model to track payments for both logged-in users and guests."""
 
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -13,7 +12,19 @@ class Payment(models.Model):
     ]
 
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment')
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payments')
+    
+    # Made nullable so guests can pay without an account
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='payments',
+        null=True, 
+        blank=True
+    )
+    
+    # Session ID to track guest payments
+    session_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    
     reference = models.CharField(max_length=255, unique=True, db_index=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')

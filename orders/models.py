@@ -77,6 +77,7 @@ class Order(models.Model):
     
     # Payment
     payment_reference = models.CharField(max_length=255, blank=True, null=True)
+    session_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     is_paid = models.BooleanField(default=False)
     paid_at = models.DateTimeField(blank=True, null=True)
     

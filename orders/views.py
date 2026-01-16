@@ -120,3 +120,46 @@ class OrderDetailView(generics.RetrieveAPIView):
         if str(self.kwargs[lookup_url_kwarg]).startswith('LRG-'):
             return generics.get_object_or_404(Order, order_number=self.kwargs[lookup_url_kwarg])
         return super().get_object()
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
+from django.db.models import Sum, F
+from .models import CartItem
+
+class CartSummaryView(APIView):
+    """
+    Returns a lightweight summary of the cart (count and total price)
+    Works for both logged-in users and guests via session_id.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        # 1. Identify the user/session
+        session_id = request.headers.get('X-Session-ID')
+        
+        if request.user.is_authenticated:
+            queryset = CartItem.objects.filter(user=request.user)
+        else:
+            queryset = CartItem.objects.filter(session_id=session_id) if session_id else CartItem.objects.none()
+
+        # 2. Calculate Totals
+        # We aggregate quantity and calculate price * quantity for each item
+        totals = queryset.aggregate(
+            total_qty=Sum('quantity'),
+            total_amt=Sum(
+                # Logic: If variant price exists use it, otherwise use product base price
+                # We use Case/When for database-level calculation or simple F expressions
+                F('quantity') * F('product__base_price')
+            )
+        )
+
+        # 3. Formulate Response
+        data = {
+            "total_quantity": totals.get('total_qty') or 0,
+            "total_price": totals.get('total_amt') or 0.00,
+            "wishlist_count": 0  # You can add wishlist logic here later
+        }
+
+        return Response(data)

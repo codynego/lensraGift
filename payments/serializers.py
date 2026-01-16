@@ -1,31 +1,38 @@
+import uuid
 from rest_framework import serializers
 from .models import Payment
+from products.models import Product, DesignPlacement, ProductVariant
+from products.serializers import ProductSerializer, DesignPlacementSerializer, ProductVariantSerializer
+
+# 1. CART ITEM SERIALIZER
+
 
 
 class PaymentSerializer(serializers.ModelSerializer):
-    """Serializer for Payment model."""
+    """Serializer for Payment model including guest session tracking."""
 
     class Meta:
         model = Payment
         fields = [
-            'id', 'order', 'user', 'reference', 'amount', 'status',
-            'payment_method', 'access_code', 'authorization_url',
+            'id', 'order', 'user', 'session_id', 'reference', 'amount', 
+            'status', 'payment_method', 'access_code', 'authorization_url',
             'created_at', 'updated_at'
         ]
         read_only_fields = [
-            'id', 'user', 'reference', 'status', 'access_code',
-            'authorization_url', 'created_at', 'updated_at'
+            'id', 'user', 'session_id', 'reference', 'status', 
+            'access_code', 'authorization_url', 'created_at', 'updated_at'
         ]
 
 
 class PaymentInitializeSerializer(serializers.Serializer):
-    """Serializer for initializing payment."""
+    """Serializer for starting a payment."""
 
     order_id = serializers.IntegerField()
     email = serializers.EmailField()
+    session_id = serializers.CharField(required=False, allow_blank=True)
 
 
 class PaymentVerifySerializer(serializers.Serializer):
-    """Serializer for verifying payment."""
+    """Serializer for checking if a payment was successful."""
 
     reference = serializers.CharField()
