@@ -208,11 +208,6 @@ CORS_ALLOWED_ORIGINS = [
     'http://127.0.0.1:3000',
 ]
 
-from decouple import Config, RepositoryEnv
-
-# If your .env is in the same folder as manage.py
-DOTENV_FILE = os.path.join(BASE_DIR, '.envt')
-config = Config(RepositoryEnv(DOTENV_FILE))
 
 
 
