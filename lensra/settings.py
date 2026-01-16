@@ -99,16 +99,16 @@ WSGI_APPLICATION = 'lensra.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': config('DATABASE_NAME', default='lensra_db'),
-#         'USER': config('DATABASE_USER', default='postgres'),
-#         'PASSWORD': config('DATABASE_PASSWORD', default='postgres'),
-#         'HOST': config('DATABASE_HOST', default='localhost'),
-#         'PORT': config('DATABASE_PORT', default='5432'),
-#     }
-# }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('DATABASE_NAME', default='lensra_db'),
+        'USER': config('DATABASE_USER', default='postgres'),
+        'PASSWORD': config('DATABASE_PASSWORD', default='postgres'),
+        'HOST': config('DATABASE_HOST', default='localhost'),
+        'PORT': config('DATABASE_PORT', default='5432'),
+    }
+}
 
 import os
 from pathlib import Path
@@ -116,12 +116,12 @@ from pathlib import Path
 # BASE_DIR is usually defined in settings.py
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',  # SQLite database file
-    }
-}
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',  # SQLite database file
+#     }
+# }
 
 
 
