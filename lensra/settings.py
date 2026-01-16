@@ -35,16 +35,24 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = [
+    "lensra.com",
+    "www.lensra.com",
+    "localhost",
+    "api.lensra.com"
+]
 CORS_ALLOWED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
+    "https://api.lensra.com"
 ]
 
 # Ensure CSRF works for your forms
 CSRF_TRUSTED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
+    "https://api.lensra.com"
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
