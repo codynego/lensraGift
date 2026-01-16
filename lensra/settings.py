@@ -36,6 +36,15 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+CORS_ALLOWED_ORIGINS = [
+    "https://lensra-gift-ui.vercel.app",
+    "https://www.lensra.com",
+]
+
+# Ensure CSRF works for your forms
+CSRF_TRUSTED_ORIGINS = [
+    "https://your-frontend-vercel-link.com",
+]
 
 
 # Application definition
