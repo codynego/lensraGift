@@ -39,20 +39,25 @@ DEBUG = config('DEBUG', default=True, cast=bool)
 ALLOWED_HOSTS = [
     "lensra.com",
     "www.lensra.com",
-    "localhost",
     "api.lensra.com"
+    "127.0.0.1",
+    "localhost",
 ]
 CORS_ALLOWED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
-    "https://api.lensra.com"
+    "https://api.lensra.com",
+    "http://127.0.0.1",
+    "http://localhost",
 ]
 
 # Ensure CSRF works for your forms
 CSRF_TRUSTED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
-    "https://api.lensra.com"
+    "https://api.lensra.com",
+    "http://127.0.0.1",
+    "http://localhost",
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
@@ -84,8 +89,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
