@@ -36,13 +36,7 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 # ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
-ALLOWED_HOSTS = [
-    "lensra.com",
-    "www.lensra.com",
-    "api.lensra.com"
-    "127.0.0.1",
-    "localhost",
-]
+ALLOWED_HOSTS = ["*"]
 CORS_ALLOWED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
