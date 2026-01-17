@@ -111,7 +111,7 @@ class OrderItem(models.Model):
     emotion = models.CharField(max_length=50, blank=True, null=True)
     
     # This token is used for the unique QR code URL (e.g., lensra.com/reveal/[token])
-    reveal_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    reveal_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True, blank=True, null=True)
     
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     unit_price = models.DecimalField(max_digits=10, decimal_places=2) 
