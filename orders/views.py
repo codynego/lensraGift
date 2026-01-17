@@ -163,3 +163,21 @@ class CartSummaryView(APIView):
         }
 
         return Response(data)
+
+
+class GetSecretMessageView(APIView):
+    """
+    Retrieve the secret message and emotion for a given order item using its reveal token.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, token):
+        try:
+            order_item = OrderItem.objects.get(reveal_token=token)
+            data = {
+                "secret_message": order_item.secret_message,
+                "emotion": order_item.emotion
+            }
+            return Response(data, status=status.HTTP_200_OK)
+        except OrderItem.DoesNotExist:
+            return Response({"error": "Invalid token"}, status=status.HTTP_404_NOT_FOUND)

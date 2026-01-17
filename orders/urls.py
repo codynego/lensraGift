@@ -12,4 +12,5 @@ urlpatterns = [
     path('orders/<int:pk>/', views.OrderDetailView.as_view(), name='order-detail'),
 
     path('cart/summary/', CartSummaryView.as_view(), name='cart-summary'),
+    path('secret-message/<uuid:reveal_token>/', views.GetSecretMessageView.as_view(), name='secret-message-reveal'),
 ]

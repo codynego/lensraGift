@@ -6,8 +6,8 @@ class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
     # Added 'variant' visibility to the inline
-    readonly_fields = ('get_item_name', 'quantity', 'unit_price', 'subtotal')
-    fields = ('get_item_name', 'quantity', 'unit_price', 'subtotal')
+    readonly_fields = ('get_item_name', 'quantity', 'unit_price', 'subtotal', 'reveal_token', 'secret_message')
+    fields = ('get_item_name', 'quantity', 'unit_price', 'subtotal', 'reveal_token', 'secret_message')
 
     def get_item_name(self, obj):
         """Displays name + attributes (Size/Color) safely."""
@@ -82,8 +82,8 @@ class CartItemAdmin(admin.ModelAdmin):
 # 4. ORDER ITEM ADMIN
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ('order', 'product_full_info', 'quantity', 'unit_price', 'subtotal')
-    search_fields = ('order__order_number', 'product__name', 'variant__attributes__value')
+    list_display = ('order', 'product_full_info', 'quantity', 'unit_price', 'subtotal', 'reveal_token', 'secret_message')
+    search_fields = ('order__order_number', 'product__name', 'variant__attributes__value', 'reveal_token', 'secret_message')
 
     def product_full_info(self, obj):
         """Comprehensive string showing Product, Design, and Variants."""
