@@ -13,10 +13,17 @@ class CategorySerializer(serializers.ModelSerializer):
 # --- NEW IMAGE SERIALIZER ---
 
 class ProductImageSerializer(serializers.ModelSerializer):
-    """Serializer for the additional gallery images."""
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductImage
-        fields = ['id', 'image', 'alt_text']
+        fields = ['id', 'image_url', 'alt_text']
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+
 
 # --- ATTRIBUTE SERIALIZERS ---
 
@@ -42,34 +49,45 @@ class PrintableAreaSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'x', 'y', 'width', 'height']
 
 class ProductSerializer(serializers.ModelSerializer):
-    """Detailed view for Product Page and Editor."""
     printable_areas = PrintableAreaSerializer(many=True, read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
-    # NEW: Include the gallery images
     gallery = ProductImageSerializer(many=True, read_only=True)
     category_name = serializers.CharField(source='category.name', read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'slug', 'base_price', 'image', 'gallery', # Added gallery
+            'id', 'name', 'slug', 'base_price', 'image', 'image_url', 'gallery',
             'min_order_quantity', 'description', 'is_customizable', 
             'printable_areas', 'variants', 'category_name',
             'is_featured', 'is_trending', 'is_active'
         ]
         read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable']
 
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+
+
 class ProductListSerializer(serializers.ModelSerializer):
-    """Simplified view for the product grid/shop home."""
     variants = ProductVariantSerializer(many=True, read_only=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            'id', 'name', 'slug', 'base_price', 'image', 
+            'id', 'name', 'slug', 'base_price', 'image', 'image_url', 
             'min_order_quantity', 'is_featured', 'is_customizable', 
             'is_trending', 'variants'
         ]
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+
 
 class DesignPlacementSerializer(serializers.ModelSerializer):
     product_name = serializers.ReadOnlyField(source='product.name')
@@ -78,6 +96,8 @@ class DesignPlacementSerializer(serializers.ModelSerializer):
     
     design_name = serializers.ReadOnlyField(source='design.name')
     design_preview = serializers.ImageField(source='design.preview_image', read_only=True)
+    product_image_url = serializers.SerializerMethodField()
+    design_preview_url = serializers.SerializerMethodField()
     custom_text = serializers.ReadOnlyField(source='design.custom_text')
     overall_instructions = serializers.ReadOnlyField(source='design.overall_instructions')
 
@@ -87,7 +107,8 @@ class DesignPlacementSerializer(serializers.ModelSerializer):
             'id', 'design', 'product', 'printable_area', 
             'layout_data', 'preview_mockup',
             'product_name', 'product_image', 'product_price',
-            'design_name', 'design_preview', 'custom_text', 'overall_instructions'
+            'design_name', 'design_preview', 'custom_text', 'overall_instructions',
+            'product_image_url', 'design_preview_url'
         ]
 
     def validate(self, data):
@@ -100,3 +121,13 @@ class DesignPlacementSerializer(serializers.ModelSerializer):
                     {"printable_area": "This area does not belong to the selected product."}
                 )
         return data
+
+    def get_product_image_url(self, obj):
+        if obj.product.image:
+            return obj.product.image.url
+        return None
+
+    def get_design_preview_url(self, obj):
+        if obj.design.preview_image:
+            return obj.design.preview_image.url
+        return None

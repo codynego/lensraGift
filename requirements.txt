@@ -7,3 +7,6 @@ requests
 django-cors-headers
 django-filter
 gunicorn
+cloudinary
+django-cloudinary-storage
+djangorestframework-simplejwt

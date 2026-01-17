@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator
 from designs.models import Design
+from cloudinary.models import CloudinaryField
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -29,7 +30,11 @@ class Product(models.Model):
         related_name="products"
     )
     
-    image = models.ImageField(upload_to="products/", blank=True, null=True)
+    image = CloudinaryField(
+        "product_image",
+        blank=True,
+        null=True
+    )
     min_order_quantity = models.PositiveIntegerField(default=1, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_customizable = models.BooleanField(default=True)
@@ -46,7 +51,9 @@ class ProductImage(models.Model):
         on_delete=models.CASCADE, 
         related_name="gallery"
     )
-    image = models.ImageField(upload_to="products/gallery/")
+    image = CloudinaryField(
+        "product_gallery_image"
+    )
     alt_text = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -116,7 +123,11 @@ class DesignPlacement(models.Model):
     layout_data = models.JSONField(null=True, blank=True) 
     
     # The generated image of the customized product
-    preview_mockup = models.ImageField(upload_to="mockups/", null=True, blank=True) 
+    preview_mockup = CloudinaryField(
+        "preview_mockup",
+        blank=True,
+        null=True
+    )
     
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 

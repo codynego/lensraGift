@@ -13,6 +13,8 @@ django-cors-headers = "*"
 django-filter = "*"
 python-decouple = "*"
 djangorestframework-simplejwt = "*"
+cloudinary = "*"
+django-cloudinary-storage = "*"
 
 [dev-packages]
 

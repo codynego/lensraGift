@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from cloudinary.models import CloudinaryField
 
 class Design(models.Model):
     """
@@ -20,7 +21,11 @@ class Design(models.Model):
     session_id = models.CharField(max_length=100, null=True, blank=True, db_index=True)
     
     # Visuals
-    preview_image = models.ImageField(upload_to='designs/previews/', null=True, blank=True)
+    preview_image = CloudinaryField(
+        "design_preview_image",
+        blank=True,
+        null=True
+    )
     is_featured = models.BooleanField(default=False)
     
     # Metadata
@@ -45,7 +50,9 @@ class DesignImage(models.Model):
         on_delete=models.CASCADE, 
         related_name='images'
     )
-    image = models.ImageField(upload_to='designs/assets/%Y/%m/%d/')
+    image = CloudinaryField(
+        "design_asset_image"
+    )
     placement_note = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -3,24 +3,34 @@ from .models import Design, DesignImage
 import os
 
 class DesignImageSerializer(serializers.ModelSerializer):
-    """Handles individual asset uploads within a design."""
+    image_url = serializers.SerializerMethodField()
+
     class Meta:
         model = DesignImage
-        fields = ['id', 'image', 'placement_note']
+        fields = ['id', 'image', 'image_url', 'placement_note']
+
+    def get_image_url(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
+
 
 class DesignSerializer(serializers.ModelSerializer):
-    """Full detail serializer including nested images."""
-    user_email = serializers.EmailField(source='user.email', read_only=True)
+    preview_image_url = serializers.SerializerMethodField()
     images = DesignImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Design
         fields = [
             'id', 'user', 'user_email', 'name', 'custom_text', 
-            'overall_instructions', 'preview_image', 'images', 
+            'overall_instructions', 'preview_image', 'preview_image_url', 'images', 
             'created_at', 'updated_at'
         ]
-        read_only_fields = ['id', 'user', 'created_at', 'updated_at']
+
+    def get_preview_image_url(self, obj):
+        if obj.preview_image:
+            return obj.preview_image.url
+        return None
 
 class DesignCreateSerializer(serializers.ModelSerializer):
     """
@@ -43,11 +53,9 @@ class DesignCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create(self, validated_data):
-        # 1. Grab files from the raw request (passed via context)
         request = self.context.get('request')
         images_data = []
-        
-        # We loop through request.FILES to find keys like 'image_0', 'image_1'
+
         index = 0
         while f'image_{index}' in request.FILES:
             images_data.append({
@@ -56,11 +64,16 @@ class DesignCreateSerializer(serializers.ModelSerializer):
             })
             index += 1
 
-        # 2. Create the main Design
         design = Design.objects.create(**validated_data)
 
-        # 3. Create the nested DesignImage objects
+        # Create DesignImages
         for item in images_data:
             DesignImage.objects.create(design=design, **item)
+
+        # Auto-generate preview if missing
+        if not design.preview_image and images_data:
+            first_img = images_data[0]['image']
+            design.preview_image = first_img
+            design.save()
 
         return design
