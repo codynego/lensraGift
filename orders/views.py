@@ -164,6 +164,8 @@ class CartSummaryView(APIView):
 
         return Response(data)
 
+from .models import OrderItem
+
 
 class GetSecretMessageView(APIView):
     """
