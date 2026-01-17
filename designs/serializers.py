@@ -22,7 +22,7 @@ class DesignSerializer(serializers.ModelSerializer):
     class Meta:
         model = Design
         fields = [
-            'id', 'user', 'user_email', 'name', 'custom_text', 
+            'id', 'user', 'name', 'custom_text', 
             'overall_instructions', 'preview_image', 'preview_image_url', 'images', 
             'created_at', 'updated_at'
         ]
