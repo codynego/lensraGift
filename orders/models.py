@@ -28,6 +28,8 @@ class CartItem(models.Model):
         null=True, 
         blank=True
     )
+    secret_message = models.TextField(blank=True, null=True)
+    emotion = models.CharField(max_length=50, blank=True, null=True)
     
     quantity = models.PositiveIntegerField(default=1)
 
@@ -87,19 +89,15 @@ class Order(models.Model):
     def __str__(self):
         return f"Order {self.order_number}"
 
-
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.PROTECT, blank=True, null=True)
-    
-    # NEW: Store the variant here so we know the color/size bought
     variant = models.ForeignKey(
         ProductVariant, 
         on_delete=models.SET_NULL, 
         null=True, 
         blank=True
     )
-    
     placement = models.ForeignKey(
         DesignPlacement, 
         on_delete=models.PROTECT, 
@@ -107,12 +105,18 @@ class OrderItem(models.Model):
         blank=True
     )
     
+    # --- SURPRISE REVEAL DATA (Captured from CartItem) ---
+    secret_message = models.TextField(blank=True, null=True)
+    emotion = models.CharField(max_length=50, blank=True, null=True)
+    
+    # This token is used for the unique QR code URL (e.g., lensra.com/reveal/[token])
+    reveal_token = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
-    unit_price = models.DecimalField(max_digits=10, decimal_places=2) # Captured at checkout
+    unit_price = models.DecimalField(max_digits=10, decimal_places=2) 
     subtotal = models.DecimalField(max_digits=10, decimal_places=2)
 
     def save(self, *args, **kwargs):
-        # Handle price calculation automatically if not provided
         if not self.unit_price:
             if self.variant and self.variant.price_override:
                 self.unit_price = self.variant.price_override
@@ -121,3 +125,6 @@ class OrderItem(models.Model):
         
         self.subtotal = self.unit_price * self.quantity
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.product.name} x {self.quantity} (Order: {self.order.order_number})"
