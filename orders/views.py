@@ -171,9 +171,9 @@ class GetSecretMessageView(APIView):
     """
     permission_classes = [AllowAny]
 
-    def get(self, request, token):
+    def get(self, request, reveal_token):
         try:
-            order_item = OrderItem.objects.get(reveal_token=token)
+            order_item = OrderItem.objects.get(reveal_token=reveal_token)
             data = {
                 "secret_message": order_item.secret_message,
                 "emotion": order_item.emotion
