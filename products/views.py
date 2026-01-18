@@ -26,7 +26,8 @@ class ProductListView(generics.ListAPIView):
     
     # Change 'category' to 'category__name'
     filterset_fields = {
-        'category__name': ['exact', 'icontains'], # Allows filtering by name
+        'category__slug': ['exact'],  # ADD THIS LINE
+        'category__name': ['exact', 'icontains'],
         'is_customizable': ['exact'],
         'is_featured': ['exact'],
         'is_trending': ['exact']
