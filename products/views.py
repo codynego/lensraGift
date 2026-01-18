@@ -24,9 +24,8 @@ class ProductListView(generics.ListAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
-    # Change 'category' to 'category__name'
     filterset_fields = {
-        'category__slug': ['exact'],  # ADD THIS LINE
+        'category__slug': ['exact'],  # ADD THIS LINE - this is what you need!
         'category__name': ['exact', 'icontains'],
         'is_customizable': ['exact'],
         'is_featured': ['exact'],
