@@ -54,7 +54,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
         """Returns string like 'Color: Red, Size: XL'"""
         if obj.variant:
             # Note: matched to attribute_name based on previous React updates
-            return ", ".join([f"{a.attribute_name}: {a.value}" for a in obj.variant.attributes.all()])
+            return ", ".join([f"{a.attribute_id}: {a.value}" for a in obj.variant.attributes.all()])
         return None
 
     def get_design_preview(self, obj):
