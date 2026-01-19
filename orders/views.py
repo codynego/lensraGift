@@ -183,3 +183,41 @@ class GetSecretMessageView(APIView):
             return Response(data, status=status.HTTP_200_OK)
         except OrderItem.DoesNotExist:
             return Response({"error": "Invalid token"}, status=status.HTTP_404_NOT_FOUND)
+
+
+
+
+
+
+from django.db.models import Q
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .models import Order  # Assuming models.py is in the same app
+from .serializers import OrderSerializer  # Assuming serializers.py exists
+
+
+class TrackOrderView(APIView):
+    """
+    Track an order using the order number and email.
+    """
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        order_number = request.data.get('order_number')
+        email = request.data.get('email')
+
+        if not order_number or not email:
+            return Response({"error": "Both order_number and email are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = Order.objects.get(
+                Q(guest_email=email) | Q(user__email=email),
+                order_number=order_number
+            )
+            serializer = OrderSerializer(order)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found with provided details."}, status=status.HTTP_404_NOT_FOUND)
