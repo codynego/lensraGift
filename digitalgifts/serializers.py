@@ -53,7 +53,7 @@ class DigitalGiftSerializer(serializers.ModelSerializer):
             'tier', 'tier_name', 'text_message', 'voice_message', 
             'video_message', 'scheduled_delivery', 'delivered', 
             'delivery_method', 'status', 'is_paid', 'addons', 'created_at',
-            'use_ai_voice', 'shipping_address', 'addon_ids'
+            'use_ai_voice', 'shipping_address', 'addon_ids', 'session_id'
         ]
         read_only_fields = ['id', 'status', 'is_paid', 'created_at']
 
