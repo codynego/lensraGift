@@ -1,48 +1,52 @@
-from rest_framework import generics
+from rest_framework import serializers
 from .models import Occasion, ExperienceTier, DigitalGift, AddOn, DigitalGiftAddOn
-from .serializers import (
-    OccasionSerializer, 
-    ExperienceTierSerializer, 
-    AddOnSerializer, 
-    DigitalGiftSerializer
-)
 
-# 1. Fetch Occasions for Step 1
-class OccasionListView(generics.ListAPIView):
-    queryset = Occasion.objects.all()
-    serializer_class = OccasionSerializer
+class OccasionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Occasion
+        fields = ['id', 'name', 'description', 'slug']
 
-# 2. Fetch Tiers for Step 2
-class ExperienceTierListView(generics.ListAPIView):
-    queryset = ExperienceTier.objects.all()
-    serializer_class = ExperienceTierSerializer
 
-# 3. Fetch Add-Ons for Step 3
-class AddOnListView(generics.ListAPIView):
-    queryset = AddOn.objects.all()
-    serializer_class = AddOnSerializer
+class ExperienceTierSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ExperienceTier
+        fields = ['id', 'name', 'description', 'price', 'recommended']
 
-# 4. Handle Gift Creation & Final Submission
-class DigitalGiftListCreateView(generics.ListCreateAPIView):
-    queryset = DigitalGift.objects.all()
-    serializer_class = DigitalGiftSerializer
 
-    def perform_create(self, serializer):
-        # Save the main gift instance
-        gift = serializer.save()
-        
-        # Extract selected_addons from the request (e.g., [1, 3])
-        # This allows the frontend to send IDs in a single POST
-        addon_ids = self.request.data.get('selected_addons', [])
-        
-        if addon_ids:
-            addons_to_create = [
-                DigitalGiftAddOn(gift=gift, addon_id=aid) for aid in addon_ids
-            ]
-            DigitalGiftAddOn.objects.bulk_create(addons_to_create)
+class AddOnSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AddOn
+        fields = ['id', 'name', 'description', 'price']
 
-# 5. Detail view for the "Success Page" or "Tracking"
-class DigitalGiftDetailView(generics.RetrieveAPIView):
-    queryset = DigitalGift.objects.all()
-    serializer_class = DigitalGiftSerializer
-    lookup_field = 'id'
+
+class DigitalGiftAddOnSerializer(serializers.ModelSerializer):
+    # This nested serializer allows us to see the AddOn details inside the Gift
+    addon_details = AddOnSerializer(source='addon', read_only=True)
+
+    class Meta:
+        model = DigitalGiftAddOn
+        fields = ['id', 'addon', 'addon_details']
+
+
+class DigitalGiftSerializer(serializers.ModelSerializer):
+    # Use PrimaryKeyRelatedField for writing and nested serializers for reading
+    addons = DigitalGiftAddOnSerializer(many=True, read_only=True)
+    
+    # We include these to show full names in the frontend rather than just IDs
+    occasion_name = serializers.ReadOnlyField(source='occasion.name')
+    tier_name = serializers.ReadOnlyField(source='tier.name')
+
+    class Meta:
+        model = DigitalGift
+        fields = [
+            'id', 'sender_name', 'sender_email', 'recipient_name', 
+            'recipient_email', 'recipient_phone', 'occasion', 'occasion_name',
+            'tier', 'tier_name', 'text_message', 'voice_message', 
+            'video_message', 'scheduled_delivery', 'delivered', 
+            'delivery_method', 'status', 'is_paid', 'addons', 'created_at'
+        ]
+        read_only_fields = ['id', 'status', 'is_paid', 'created_at']
+
+    def create(self, validated_data):
+        # Handle the creation of the gift first
+        return DigitalGift.objects.create(**validated_data)
