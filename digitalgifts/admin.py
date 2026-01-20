@@ -64,12 +64,17 @@ class DigitalGiftAdmin(admin.ModelAdmin):
         )
     status_pill.short_description = 'Status'
 
-    # Custom Payment Status
+        # Custom Payment Status
     def payment_status(self, obj):
-        if obj.is_paid:
-            return format_html('<span style="color: #16a34a; font-weight: bold;">✔ PAID</span>')
-        return format_html('<span style="color: #dc2626; font-weight: bold;">✘ UNPAID</span>')
-    payment_status.short_description = 'Payment'
+        color = "#16a34a" if obj.is_paid else "#dc2626"
+        label = "✔ PAID" if obj.is_paid else "✘ UNPAID"
+
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            label
+        )
+
 
     # Organize the detail view into sections
     fieldsets = (
