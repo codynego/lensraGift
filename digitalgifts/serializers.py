@@ -48,14 +48,14 @@ class DigitalGiftSerializer(serializers.ModelSerializer):
     class Meta:
         model = DigitalGift
         fields = [
-            'id', 'sender_name', 'sender_email', 'recipient_name', 
+            'id','short_id', 'sender_name', 'sender_email', 'recipient_name', 
             'recipient_email', 'recipient_phone', 'occasion', 'occasion_name',
             'tier', 'tier_name', 'text_message', 'voice_message', 
             'video_message', 'scheduled_delivery', 'delivered', 
             'delivery_method', 'status', 'is_paid', 'addons', 'created_at',
             'use_ai_voice', 'shipping_address', 'addon_ids', 'session_id'
         ]
-        read_only_fields = ['id', 'status', 'is_paid', 'created_at']
+        read_only_fields = ['id', 'status', 'is_paid', 'created_at', 'short_id']
 
     def create(self, validated_data):
         addon_ids = validated_data.pop('addon_ids', [])

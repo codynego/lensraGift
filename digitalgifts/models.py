@@ -1,4 +1,19 @@
 from django.db import models
+import string
+import secrets
+
+
+
+def generate_gift_code():
+    """
+    Generates a 6-character unique ID using a mix of upper, lower, 
+    and digits while excluding visually similar characters (I, l, 1, O, 0).
+    """
+    # Custom alphabet for maximum clarity and high variety
+    # Removed: I, l, 1, O, o, 0
+    alphabet = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+    
+    return ''.join(secrets.choice(alphabet) for _ in range(6))
 
 
 class GiftStatus(models.TextChoices):
@@ -33,6 +48,7 @@ class DigitalGift(models.Model):
     sender_name = models.CharField(max_length=100)
     sender_email = models.EmailField()
     session_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    short_id = models.CharField(max_length=10, unique=True, default=generate_gift_code, editable=False,db_index=True, null=False, blank=False)
 
     # Recipient info
     recipient_name = models.CharField(max_length=100)
@@ -82,6 +98,15 @@ class DigitalGift(models.Model):
             total += gift_addon.addon.price
             
         return total
+
+    def save(self, *args, **kwargs):
+            if not self.short_id:
+                # Collision check
+                new_id = generate_gift_code()
+                while DigitalGift.objects.filter(short_id=new_id).exists():
+                    new_id = generate_gift_code()
+                self.short_id = new_id
+            super().save(*args, **kwargs)
 
 
 class AddOn(models.Model):

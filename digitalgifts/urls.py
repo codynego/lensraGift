@@ -9,5 +9,5 @@ urlpatterns = [
 
     # Gift Creation & Management
     path('gifts/', views.DigitalGiftListCreateView.as_view(), name='gift-create'),
-    path('gifts/<int:id>/', views.DigitalGiftDetailView.as_view(), name='gift-detail'),
+    path('gifts/<str:short_id>/', views.DigitalGiftDetailView.as_view(), name='gift-detail'),
 ]

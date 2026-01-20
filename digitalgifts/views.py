@@ -50,4 +50,4 @@ class DigitalGiftDetailView(generics.RetrieveAPIView):
     queryset = DigitalGift.objects.all()
     serializer_class = DigitalGiftSerializer
     permission_classes = [AllowAny]
-    lookup_field = 'id'
+    lookup_field = 'short_id'
