@@ -12,7 +12,7 @@ from .serializers import (
     PaymentVerifySerializer
 )
 from django.utils import timezone
-from digital_gifts.models import DigitalGift
+from digitalgifts.models import DigitalGift
 
 
 
