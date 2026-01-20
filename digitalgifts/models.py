@@ -48,7 +48,7 @@ class DigitalGift(models.Model):
     sender_name = models.CharField(max_length=100)
     sender_email = models.EmailField()
     session_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
-    short_id = models.CharField(max_length=10, unique=True, default=generate_gift_code, editable=False,db_index=True, null=False, blank=False)
+    short_id = models.CharField(max_length=10, default=generate_gift_code, editable=False,db_index=True, null=False, blank=False)
 
     # Recipient info
     recipient_name = models.CharField(max_length=100)
