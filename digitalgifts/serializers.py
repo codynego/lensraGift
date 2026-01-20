@@ -39,6 +39,11 @@ class DigitalGiftSerializer(serializers.ModelSerializer):
     # We include these to show full names in the frontend rather than just IDs
     occasion_name = serializers.ReadOnlyField(source='occasion.name')
     tier_name = serializers.ReadOnlyField(source='tier.name')
+    sender_name = serializers.CharField(required=False, allow_blank=True)
+    sender_email = serializers.CharField(required=False, allow_blank=True)
+    recipient_name = serializers.CharField(required=False, allow_blank=True)
+    recipient_email = serializers.CharField(required=False, allow_blank=True)
+    recipient_phone = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = DigitalGift
