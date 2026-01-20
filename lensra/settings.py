@@ -95,6 +95,7 @@ INSTALLED_APPS = [
     'reseller',
     'cloudinary',
     'cloudinary_storage',
+    'digitalgifts',
 ]
 
 MIDDLEWARE = [

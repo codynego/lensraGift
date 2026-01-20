@@ -14,7 +14,7 @@ class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
         fields = [
-            'id', 'order', 'user', 'session_id', 'reference', 'amount', 
+            'id', 'order', 'digital_gift', 'user', 'session_id', 'reference', 'amount', 
             'status', 'payment_method', 'access_code', 'authorization_url',
             'created_at', 'updated_at'
         ]
@@ -22,6 +22,12 @@ class PaymentSerializer(serializers.ModelSerializer):
             'id', 'user', 'session_id', 'reference', 'status', 
             'access_code', 'authorization_url', 'created_at', 'updated_at'
         ]
+        
+        def validate(self, attrs):
+            if not attrs.get('order') and not attrs.get('digital_gift'):
+                raise serializers.ValidationError("Payment must be linked to either an order or a digital gift.")
+            return attrs
+
 
 
 class PaymentInitializeSerializer(serializers.Serializer):

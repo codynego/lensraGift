@@ -29,6 +29,7 @@ urlpatterns = [
     path('api/wishlists/', include('wishlists.urls')),
     path('api/rewards/', include('rewards.urls')),
     path('api/reseller/', include('reseller.urls')),
+    path('api/digital-gifts/', include('digitalgifts.urls')),
 ]
 
 if settings.DEBUG:

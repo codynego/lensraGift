@@ -1,6 +1,7 @@
 from django.db import models
 from django.conf import settings
 from orders.models import Order
+from digitalgifts.models import DigitalGift
 
 class Payment(models.Model):
     """Model to track payments for both logged-in users and guests."""
@@ -11,7 +12,13 @@ class Payment(models.Model):
         ('failed', 'Failed'),
     ]
 
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment')
+    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment', null=True, blank=True)
+    digital_gift = models.OneToOneField(DigitalGift,on_delete=models.CASCADE,
+        related_name='payment',
+        null=True,
+        blank=True
+    )
+
     
     # Made nullable so guests can pay without an account
     user = models.ForeignKey(
