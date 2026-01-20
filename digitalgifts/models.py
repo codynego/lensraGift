@@ -71,6 +71,18 @@ class DigitalGift(models.Model):
     def __str__(self):
         return f"Gift from {self.sender_name} to {self.recipient_name}"
 
+    @property
+    def total_price(self):
+        # Start with the tier price
+        total = self.tier.price if self.tier else 0
+        
+        # Add the price of all related addons
+        # We use .addons.all() because of the related_name in DigitalGiftAddOn
+        for gift_addon in self.addons.all():
+            total += gift_addon.addon.price
+            
+        return total
+
 
 class AddOn(models.Model):
     name = models.CharField(max_length=100)

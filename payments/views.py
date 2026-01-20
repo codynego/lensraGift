@@ -63,7 +63,7 @@ class PaymentInitializeView(APIView):
             if target.is_paid:
                 return Response({'error': 'This digital gift has already been paid for.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            amount = target.price
+            amount = target.total_price if hasattr(target, 'total_price') else 0
 
         # Initialize Paystack payment
         paystack_url = 'https://api.paystack.co/transaction/initialize'
