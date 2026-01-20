@@ -66,7 +66,6 @@ class DigitalGiftSerializer(serializers.ModelSerializer):
         for addon_id in addon_ids:
             addon = AddOn.objects.get(id=addon_id)
             DigitalGiftAddOn.objects.create(gift=gift, addon=addon)
-        
         # Handle AI voice generation if use_ai_voice is True
         # (Implement AI voice generation logic here if needed)
         
