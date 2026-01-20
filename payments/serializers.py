@@ -22,7 +22,7 @@ class PaymentSerializer(serializers.ModelSerializer):
             'id', 'user', 'session_id', 'reference', 'status', 
             'access_code', 'authorization_url', 'created_at', 'updated_at'
         ]
-        
+
         def validate(self, attrs):
             if not attrs.get('order') and not attrs.get('digital_gift'):
                 raise serializers.ValidationError("Payment must be linked to either an order or a digital gift.")
@@ -33,7 +33,8 @@ class PaymentSerializer(serializers.ModelSerializer):
 class PaymentInitializeSerializer(serializers.Serializer):
     """Serializer for starting a payment."""
 
-    order_id = serializers.IntegerField()
+    order_id = serializers.IntegerField(required=False)
+    digital_gift_id = serializers.IntegerField(required=False)
     email = serializers.EmailField()
     session_id = serializers.CharField(required=False, allow_blank=True)
 
