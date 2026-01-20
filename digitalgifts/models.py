@@ -1,5 +1,13 @@
 from django.db import models
 
+
+class GiftStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    PROCESSING = 'processing', 'Processing'
+    SENT = 'sent', 'Sent'
+    DELIVERED = 'delivered', 'Delivered'
+
+
 class Occasion(models.Model):
     name = models.CharField(max_length=100)  # Birthday, Love, Friendship
     description = models.TextField(blank=True)
@@ -76,10 +84,4 @@ class DigitalGiftAddOn(models.Model):
     gift = models.ForeignKey(DigitalGift, on_delete=models.CASCADE, related_name='addons')
     addon = models.ForeignKey(AddOn, on_delete=models.CASCADE)
 
-
-class GiftStatus(models.TextChoices):
-    PENDING = 'pending', 'Pending'
-    PROCESSING = 'processing', 'Processing'
-    SENT = 'sent', 'Sent'
-    DELIVERED = 'delivered', 'Delivered'
 
