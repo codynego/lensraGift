@@ -6,26 +6,30 @@ from .serializers import (
     AddOnSerializer, 
     DigitalGiftSerializer
 )
+from rest_framework.permissions import AllowAny
 
 # 1. Fetch Occasions for Step 1
 class OccasionListView(generics.ListAPIView):
     queryset = Occasion.objects.all()
     serializer_class = OccasionSerializer
+    permission_classes = [AllowAny]
 
 # 2. Fetch Tiers for Step 2
 class ExperienceTierListView(generics.ListAPIView):
     queryset = ExperienceTier.objects.all()
     serializer_class = ExperienceTierSerializer
+    permission_classes = [AllowAny]
 
 # 3. Fetch Add-Ons for Step 3
 class AddOnListView(generics.ListAPIView):
     queryset = AddOn.objects.all()
     serializer_class = AddOnSerializer
-
+    permission_classes = [AllowAny]
 # 4. Handle Gift Creation & Final Submission
 class DigitalGiftListCreateView(generics.ListCreateAPIView):
     queryset = DigitalGift.objects.all()
     serializer_class = DigitalGiftSerializer
+    permission_classes = [AllowAny]
 
     def perform_create(self, serializer):
         # Save the main gift instance
@@ -45,4 +49,5 @@ class DigitalGiftListCreateView(generics.ListCreateAPIView):
 class DigitalGiftDetailView(generics.RetrieveAPIView):
     queryset = DigitalGift.objects.all()
     serializer_class = DigitalGiftSerializer
+    permission_classes = [AllowAny]
     lookup_field = 'id'
