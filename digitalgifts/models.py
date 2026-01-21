@@ -63,6 +63,9 @@ class DigitalGift(models.Model):
     text_message = models.TextField(blank=True)
     voice_message = models.FileField(upload_to='voice_messages/', blank=True, null=True)
     video_message = models.FileField(upload_to='video_messages/', blank=True, null=True)
+    is_opened = models.BooleanField(default=False)
+    opened_at = models.DateTimeField(blank=True, null=True)
+    open_count = models.PositiveIntegerField(default=0)
 
     # Delivery
     scheduled_delivery = models.DateTimeField(blank=True, null=True)
