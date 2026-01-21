@@ -1,5 +1,5 @@
 from rest_framework import generics
-from datetime import datetime, timezone 
+from django.utils import timezone 
 from .models import Occasion, ExperienceTier, DigitalGift, AddOn, DigitalGiftAddOn
 from .serializers import (
     OccasionSerializer, 
