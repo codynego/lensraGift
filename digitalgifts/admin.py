@@ -40,7 +40,7 @@ class DigitalGiftAdmin(admin.ModelAdmin):
     # Organizes the list view for quick "Order Processing"
     list_display = (
         'id', 'short_id', 'sender_name', 'recipient_name', 'occasion', 
-        'tier', 'status_pill', 'payment_status', 'created_at'
+        'tier', 'status_pill', 'payment_status', 'created_at', 'is_opened', 'open_count', 'opened_at'
     )
     list_filter = ('status', 'is_paid', 'occasion', 'tier', 'created_at')
     search_fields = ('sender_name', 'recipient_name', 'sender_email', 'recipient_email')
