@@ -52,7 +52,7 @@ class ProductSerializer(serializers.ModelSerializer):
     printable_areas = PrintableAreaSerializer(many=True, read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
     gallery = ProductImageSerializer(many=True, read_only=True)
-    category_name = serializers.CharField(source='category.name', read_only=True)
+    category_name = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -70,11 +70,16 @@ class ProductSerializer(serializers.ModelSerializer):
             return obj.image.url
         return None
 
+    def get_category_name(self, obj):
+        if obj.categories.exists():
+            return obj.categories.first().name
+        return None
+
 
 class ProductListSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
     image_url = serializers.SerializerMethodField()
-    category_name = serializers.CharField(source='category.name', read_only=True)
+    category_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -89,6 +94,10 @@ class ProductListSerializer(serializers.ModelSerializer):
             return obj.image.url
         return None
 
+    def get_category_name(self, obj):
+        if obj.categories.exists():
+            return obj.categories.first().name
+        return None
 
 class DesignPlacementSerializer(serializers.ModelSerializer):
     product_name = serializers.ReadOnlyField(source='product.name')

@@ -22,14 +22,11 @@ class Product(models.Model):
         decimal_places=2, 
         validators=[MinValueValidator(0.01)]
     )
-    category = models.ForeignKey(
+    categories = models.ManyToManyField(
         Category, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True, 
-        related_name="products"
+        related_name="products",
+        blank=True
     )
-    
     image = CloudinaryField(
         "product_image",
         blank=True,
