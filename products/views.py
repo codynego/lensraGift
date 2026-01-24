@@ -8,6 +8,16 @@ from .serializers import (
     DesignPlacementSerializer,
     CategorySerializer
 )
+import django_filters
+
+class ProductFilter(django_filters.FilterSet):
+    min_price = django_filters.NumberFilter(field_name="base_price", lookup_expr='gte')
+    max_price = django_filters.NumberFilter(field_name="base_price", lookup_expr='lte')
+    category = django_filters.CharFilter(field_name="categories__slug", lookup_expr='exact')
+
+    class Meta:
+        model = Product
+        fields = ['is_customizable', 'is_featured', 'is_trending']
 
 class CategoryListView(generics.ListAPIView):
     """Returns list of categories for navigation/filtering."""
@@ -22,14 +32,7 @@ class ProductListView(generics.ListAPIView):
     serializer_class = ProductListSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    
-    filterset_fields = {
-        'categories__slug': ['exact'],  
-        'categories__name': ['exact', 'icontains'],
-        'is_customizable': ['exact'],
-        'is_featured': ['exact'],
-        'is_trending': ['exact']
-    }
+    filterset_class = ProductFilter 
     search_fields = ['name']
     ordering_fields = ['base_price']
     
