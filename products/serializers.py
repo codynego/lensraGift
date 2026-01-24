@@ -21,7 +21,22 @@ class ProductImageSerializer(serializers.ModelSerializer):
 
     def get_image_url(self, obj):
         if obj.image:
-            return obj.image.url
+            url = obj.image.url
+            
+            # Add Cloudinary transformations for optimization
+            # This works if you're using CloudinaryField
+            if hasattr(obj.image, 'build_url'):
+                url = obj.image.build_url(
+                    quality='auto',           # Automatic quality adjustment
+                    fetch_format='auto',      # Automatic format (WebP for supported browsers)
+                    width=800,                # Resize to appropriate width
+                    crop='limit',             # Don't upscale, only downscale
+                    flags='progressive'       # Progressive JPEG loading
+                )
+            
+            if url.startswith('http://'):
+                url = 'https://' + url[7:]
+            return url
         return None
 
 
@@ -67,7 +82,22 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_image_url(self, obj):
         if obj.image:
-            return obj.image.url
+            url = obj.image.url
+            
+            # Add Cloudinary transformations for optimization
+            # This works if you're using CloudinaryField
+            if hasattr(obj.image, 'build_url'):
+                url = obj.image.build_url(
+                    quality='auto',           # Automatic quality adjustment
+                    fetch_format='auto',      # Automatic format (WebP for supported browsers)
+                    width=800,                # Resize to appropriate width
+                    crop='limit',             # Don't upscale, only downscale
+                    flags='progressive'       # Progressive JPEG loading
+                )
+            
+            if url.startswith('http://'):
+                url = 'https://' + url[7:]
+            return url
         return None
 
     def get_category_name(self, obj):
@@ -91,7 +121,22 @@ class ProductListSerializer(serializers.ModelSerializer):
 
     def get_image_url(self, obj):
         if obj.image:
-            return obj.image.url
+            url = obj.image.url
+            
+            # Add Cloudinary transformations for optimization
+            # This works if you're using CloudinaryField
+            if hasattr(obj.image, 'build_url'):
+                url = obj.image.build_url(
+                    quality='auto',           # Automatic quality adjustment
+                    fetch_format='auto',      # Automatic format (WebP for supported browsers)
+                    width=800,                # Resize to appropriate width
+                    crop='limit',             # Don't upscale, only downscale
+                    flags='progressive'       # Progressive JPEG loading
+                )
+            
+            if url.startswith('http://'):
+                url = 'https://' + url[7:]
+            return url
         return None
 
     def get_category_name(self, obj):
@@ -132,12 +177,44 @@ class DesignPlacementSerializer(serializers.ModelSerializer):
                 )
         return data
 
+
     def get_product_image_url(self, obj):
         if obj.product.image:
-            return obj.product.image.url
+            url = obj.product.image.url
+            
+            # Add Cloudinary transformations for optimization
+            # This works if you're using CloudinaryField
+            if hasattr(obj.product.image, 'build_url'):
+                url = obj.product.image.build_url(
+                    quality='auto',           # Automatic quality adjustment
+                    fetch_format='auto',      # Automatic format (WebP for supported browsers)
+                    width=800,                # Resize to appropriate width
+                    crop='limit',             # Don't upscale, only downscale
+                    flags='progressive'       # Progressive JPEG loading
+                )
+            
+            if url.startswith('http://'):
+                url = 'https://' + url[7:]
+            return url
         return None
+
 
     def get_design_preview_url(self, obj):
         if obj.design.preview_image:
-            return obj.design.preview_image.url
+            url = obj.design.preview_image.url
+            
+            # Add Cloudinary transformations for optimization
+            # This works if you're using CloudinaryField
+            if hasattr(obj.design.preview_image, 'build_url'):
+                url = obj.design.preview_image.build_url(
+                    quality='auto',           # Automatic quality adjustment
+                    fetch_format='auto',      # Automatic format (WebP for supported browsers)
+                    width=800,                # Resize to appropriate width
+                    crop='limit',             # Don't upscale, only downscale
+                    flags='progressive'       # Progressive JPEG loading
+                )
+            
+            if url.startswith('http://'):
+                url = 'https://' + url[7:]
+            return url
         return None
