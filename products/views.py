@@ -17,16 +17,15 @@ class CategoryListView(generics.ListAPIView):
 
 class ProductListView(generics.ListAPIView):
     queryset = Product.objects.filter(is_active=True)\
-        .select_related('category')\
-        .prefetch_related('variants__attributes__attribute', 'printable_areas')
+        .prefetch_related('categories', 'variants__attributes__attribute', 'printable_areas')
     
     serializer_class = ProductListSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     
     filterset_fields = {
-        'category__slug': ['exact'],  # ADD THIS LINE - this is what you need!
-        'category__name': ['exact', 'icontains'],
+        'categories__slug': ['exact'],  
+        'categories__name': ['exact', 'icontains'],
         'is_customizable': ['exact'],
         'is_featured': ['exact'],
         'is_trending': ['exact']
@@ -38,7 +37,7 @@ class ProductListView(generics.ListAPIView):
 class ProductDetailView(generics.RetrieveAPIView):
     """Detailed view for the editor: Loads product, print zones, and all variants."""
     queryset = Product.objects.filter(is_active=True)\
-        .prefetch_related('variants__attributes__attribute', 'printable_areas')
+        .prefetch_related('categories', 'variants__attributes__attribute', 'printable_areas')
         
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -56,7 +55,7 @@ class DesignPlacementCreateView(generics.CreateAPIView):
 class FeaturedProductsView(generics.ListAPIView):
     """Returns featured products with variant data for homepage highlights."""
     queryset = Product.objects.filter(is_active=True, is_featured=True)\
-        .prefetch_related('variants__attributes__attribute')
+        .prefetch_related('categories', 'variants__attributes__attribute')
         
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
