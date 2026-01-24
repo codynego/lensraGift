@@ -41,11 +41,11 @@ class AttributeAdmin(admin.ModelAdmin):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
-        'name', 'category', 'base_price', 'min_order_quantity', 
+        'name', 'get_categories', 'base_price', 'min_order_quantity', 
         'is_active', 'is_featured', 'is_trending'
     )
-    list_filter = ('category', 'is_active', 'is_featured', 'is_trending')
-    search_fields = ('name', 'category__name')
+    list_filter = ('categories', 'is_active', 'is_featured', 'is_trending')
+    search_fields = ('name', 'categories__name')
     prepopulated_fields = {'slug': ('name',)}
     
     # NEW: All related sections are now managed inside the Product page
@@ -53,7 +53,7 @@ class ProductAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'slug', 'category', 'image', 'base_price', 'description')
+            'fields': ('name', 'slug', 'categories', 'image', 'base_price', 'description')
         }),
         ('Inventory Settings', {
             'fields': ('min_order_quantity', 'is_customizable')
@@ -62,6 +62,10 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('is_active', 'is_featured', 'is_trending')
         }),
     )
+
+    def get_categories(self, obj):
+        return ", ".join([c.name for c in obj.categories.all()])
+    get_categories.short_description = 'Categories'
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
