@@ -20,12 +20,9 @@ class ProductImageSerializer(serializers.ModelSerializer):
         fields = ['id', 'image_url', 'alt_text']
 
     def get_image_url(self, obj):
-            if obj.image:
-                url = obj.image.url
-                if url.startswith('http://'):
-                    url = 'https://' + url[7:]
-                return url
-            return None
+        if obj.image:
+            return obj.image.url
+        return None
 
 
 # --- ATTRIBUTE SERIALIZERS ---
@@ -69,12 +66,9 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable']
 
     def get_image_url(self, obj):
-            if obj.image:
-                url = obj.image.url
-                if url.startswith('http://'):
-                    url = 'https://' + url[7:]
-                return url
-            return None
+        if obj.image:
+            return obj.image.url
+        return None
 
     def get_category_name(self, obj):
         if obj.categories.exists():
@@ -96,12 +90,9 @@ class ProductListSerializer(serializers.ModelSerializer):
         ]
 
     def get_image_url(self, obj):
-            if obj.image:
-                url = obj.image.url
-                if url.startswith('http://'):
-                    url = 'https://' + url[7:]
-                return url
-            return None
+        if obj.image:
+            return obj.image.url
+        return None
 
     def get_category_name(self, obj):
         if obj.categories.exists():
@@ -143,16 +134,10 @@ class DesignPlacementSerializer(serializers.ModelSerializer):
 
     def get_product_image_url(self, obj):
         if obj.product.image:
-                url = obj.product.image.url
-                if url.startswith('http://'):
-                    url = 'https://' + url[7:]
-                return url
+            return obj.product.image.url
         return None
 
     def get_design_preview_url(self, obj):
         if obj.design.preview_image:
-            url = obj.design.preview_image.url
-            if url.startswith('http://'):
-                url = 'https://' + url[7:]
-            return url
+            return obj.design.preview_image.url
         return None
