@@ -71,7 +71,7 @@ from rest_framework import serializers
 from django.conf import settings
 from django.db import transaction
 from .models import Order, OrderItem, ShippingLocation, ShippingOption
-from cart.models import CartItem # Adjust import based on your app structure
+from .models import CartItem #
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
