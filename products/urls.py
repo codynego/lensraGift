@@ -4,7 +4,8 @@ from .views import (
     ProductDetailView, 
     DesignPlacementCreateView,
     CategoryListView,
-    FeaturedProductsView
+    FeaturedProductsView,
+    ProductDetail
 )
 
 app_name = 'products'
