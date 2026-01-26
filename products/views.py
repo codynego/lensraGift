@@ -46,6 +46,15 @@ class ProductDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'
 
+class ProductDetail(generics.RetrieveAPIView):
+    """Detailed view for the editor: Loads product, print zones, and all variants."""
+    queryset = Product.objects.filter(is_active=True)\
+        .prefetch_related('categories', 'variants__attributes__attribute', 'printable_areas')
+        
+    serializer_class = ProductSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'id'
+
 class DesignPlacementCreateView(generics.CreateAPIView):
     """Saves a specific layout (JSON) onto a product area."""
     queryset = DesignPlacement.objects.all()

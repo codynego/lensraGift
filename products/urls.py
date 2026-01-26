@@ -21,4 +21,5 @@ urlpatterns = [
     # 3. Dynamic Routes (Place slugs/IDs last)
     # This captures everything else, so it must be at the bottom
     path('<slug:slug>/', ProductDetailView.as_view(), name='product-detail'),
+    path('id/<int:id>/', ProductDetail.as_view(), name='product-detail-by-id'),
 ]
