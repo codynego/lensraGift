@@ -236,6 +236,7 @@ class ShippingZoneListView(generics.ListAPIView):
     """
     queryset = ShippingZone.objects.all().prefetch_related('locations')
     serializer_class = ShippingZoneSerializer
+    permission_classes = [AllowAny]
 
 class ShippingOptionListView(generics.ListAPIView):
     """
@@ -243,3 +244,4 @@ class ShippingOptionListView(generics.ListAPIView):
     """
     queryset = ShippingOption.objects.filter(additional_cost__gte=0) # Only active options
     serializer_class = ShippingOptionSerializer
+    permission_classes = [AllowAny]
