@@ -221,3 +221,25 @@ class TrackOrderView(APIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Order.DoesNotExist:
             return Response({"error": "Order not found with provided details."}, status=status.HTTP_404_NOT_FOUND)
+
+
+    
+
+# views.py
+from rest_framework import generics
+from .models import ShippingZone, ShippingOption
+from .serializers import ShippingZoneSerializer, ShippingOptionSerializer
+
+class ShippingZoneListView(generics.ListAPIView):
+    """
+    Returns all shipping zones with their associated cities (locations).
+    """
+    queryset = ShippingZone.objects.all().prefetch_related('locations')
+    serializer_class = ShippingZoneSerializer
+
+class ShippingOptionListView(generics.ListAPIView):
+    """
+    Returns speed options like 'Standard' or 'Express'.
+    """
+    queryset = ShippingOption.objects.filter(additional_cost__gte=0) # Only active options
+    serializer_class = ShippingOptionSerializer

@@ -14,4 +14,8 @@ urlpatterns = [
     path('cart/summary/', CartSummaryView.as_view(), name='cart-summary'),
     path('secret-message/<uuid:reveal_token>/', views.GetSecretMessageView.as_view(), name='secret-message-reveal'),
     path('track-order/', views.TrackOrderView.as_view(), name='track-order'),
+
+
+    path('shipping/zones/', views.ShippingZoneListView.as_view(), name='shipping-zones'),
+    path('shipping/options/', views.ShippingOptionListView.as_view(), name='shipping-options'),
 ]

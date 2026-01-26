@@ -49,6 +49,41 @@ class CartItem(models.Model):
         return f"{owner} - {self.product.name}{variant_str}"
 
 
+
+class ShippingZone(models.Model):
+    name = models.CharField(max_length=100) # e.g., "Lagos Mainland", "Lagos Island", "North Major Cities"
+    base_fee = models.DecimalField(max_digits=10, decimal_places=2) # e.g., 2500.00
+
+    
+
+    def __str__(self):
+
+        return f"{self.name} - ₦{self.base_fee}"
+
+
+
+class ShippingLocation(models.Model):
+    city_name = models.CharField(max_length=100) # e.g., "Ikeja", "Surulere", "Garki"
+    zone = models.ForeignKey(ShippingZone, on_delete=models.CASCADE, related_name="locations")
+
+    
+
+    def __str__(self):
+
+        return f"{self.city_name} ({self.zone.name})"
+
+
+
+class ShippingOption(models.Model):
+    name = models.CharField(max_length=100) # e.g., "Standard", "Express/Same Day"
+    additional_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00) 
+    estimated_delivery = models.CharField(max_length=100) # e.g., "3-5 days" or "Within 24 hours"
+
+    def __str__(self):
+
+        return f"{self.name} (+ ₦{self.additional_cost})"
+
+
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -69,16 +104,37 @@ class Order(models.Model):
     order_number = models.CharField(max_length=50, unique=True, db_index=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
+    # Financial Totals
+    # subtotal_amount: Sum of items before shipping
+    subtotal_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    # total_amount: items + shipping
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     
-    # Shipping
+    # --- New Shipping Links & Snapshots ---
+    shipping_location = models.ForeignKey(
+        'ShippingLocation', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='orders'
+    )
+    shipping_option = models.ForeignKey(
+        'ShippingOption', 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        related_name='orders'
+    )
+    
+    # We store these as hard numbers so they NEVER change if you update prices later
+    shipping_base_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    shipping_option_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    # --------------------------------------
+
     shipping_address = models.TextField()
-    shipping_city = models.CharField(max_length=100)
+    shipping_city = models.CharField(max_length=100) # Still good to keep as text for backup
     shipping_state = models.CharField(max_length=100)
     shipping_country = models.CharField(max_length=100, default='Nigeria')
     phone_number = models.CharField(max_length=20)
     
-    # Payment
     payment_reference = models.CharField(max_length=255, blank=True, null=True)
     session_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
     is_paid = models.BooleanField(default=False)
@@ -89,6 +145,12 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order {self.order_number}"
+
+    @property
+    def total_shipping_cost(self):
+        return self.shipping_base_cost + self.shipping_option_cost
+
+        
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')

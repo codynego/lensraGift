@@ -28,29 +28,57 @@ class OrderItemInline(admin.TabularInline):
 # 2. ORDER ADMIN
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('order_number', 'get_customer', 'status', 'total_amount', 'is_paid', 'created_at')
-    list_filter = ('status', 'is_paid', 'created_at', 'shipping_country')
-    search_fields = ('order_number', 'user__email', 'guest_email', 'phone_number')
-    readonly_fields = ('order_number', 'total_amount', 'created_at', 'updated_at')
+    # Added 'shipping_location' and 'status' colors/logic would go here
+    list_display = (
+        'order_number', 'get_customer', 'status', 'is_paid', 
+        'subtotal_amount', 'total_amount', 'created_at'
+    )
+    list_filter = ('status', 'is_paid', 'created_at', 'shipping_option', 'shipping_location__zone')
+    search_fields = ('order_number', 'user__email', 'guest_email', 'phone_number', 'shipping_city')
+    
+    # These are numbers calculated by the system, so they should be read-only
+    readonly_fields = (
+        'order_number', 'subtotal_amount', 'total_amount', 
+        'shipping_base_cost', 'shipping_option_cost', 
+        'created_at', 'updated_at', 'paid_at'
+    )
     
     fieldsets = (
         ('Customer Info', {
-            'fields': ('order_number', 'user', 'guest_email', 'session_id')
+            'fields': ('order_number', 'user', 'guest_email', 'session_id', 'phone_number')
         }),
         ('Status & Payment', {
-            'fields': ('status', 'total_amount', 'is_paid', 'paid_at', 'payment_reference')
+            'fields': ('status', 'is_paid', 'paid_at', 'payment_reference')
         }),
-        ('Shipping Details', {
-            'fields': ('shipping_address', 'shipping_city', 'shipping_state', 'shipping_country', 'phone_number')
+        ('Financial Breakdown', {
+            'description': 'Snapshot of prices at the time of purchase.',
+            'fields': (
+                'subtotal_amount', 
+                'shipping_base_cost', 
+                'shipping_option_cost', 
+                'total_amount'
+            )
+        }),
+        ('Shipping Logistics', {
+            'fields': (
+                'shipping_location', 
+                'shipping_option', 
+                'shipping_address', 
+                'shipping_city', 
+                'shipping_state', 
+                'shipping_country'
+            )
         }),
     )
     
     inlines = [OrderItemInline]
 
     def get_customer(self, obj):
-        return obj.user.email if obj.user else (obj.guest_email or f"Guest {obj.session_id[:8]}")
+        if obj.user:
+            return obj.user.email
+        return obj.guest_email if obj.guest_email else f"Guest ({obj.session_id[:8] if obj.session_id else 'N/A'})"
+    
     get_customer.short_description = 'Customer'
-
 
 # 3. CART ITEM ADMIN
 @admin.register(CartItem)
@@ -103,3 +131,23 @@ class OrderItemAdmin(admin.ModelAdmin):
         return f"{base_name}{variant_info}{design_info}"
     
     product_full_info.short_description = 'Product Details'
+
+
+
+
+
+from django.contrib import admin
+from .models import ShippingZone, ShippingLocation, ShippingOption
+
+class ShippingLocationInline(admin.TabularInline):
+    model = ShippingLocation
+    extra = 3  # Gives you 3 empty rows to quickly type cities
+
+@admin.register(ShippingZone)
+class ShippingZoneAdmin(admin.ModelAdmin):
+    inlines = [ShippingLocationInline]
+    list_display = ('name', 'base_fee')
+
+@admin.register(ShippingOption)
+class ShippingOptionAdmin(admin.ModelAdmin):
+    list_display = ('name', 'additional_cost', 'estimated_delivery')
