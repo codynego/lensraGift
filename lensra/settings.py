@@ -261,17 +261,15 @@ CLOUDINARY_STORAGE = {
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
 
-
+# 2. Add the custom configuration
 CKEDITOR_5_CONFIGS = {
     'extends': {
-        'blockToolbar': [
-            'paragraph', 'heading1', 'heading2', 'heading3',
-            '|', 'bulletedList', 'numberedList',
-        ],
         'toolbar': [
             'heading', '|', 'bold', 'italic', 'link', 'underline', 'strikethrough',
-            '|', 'fontSize', 'fontColor', 'fontBackgroundColor',
-            '|', 'imageUpload', 'mediaEmbed', 'insertTable', 'sourceEditing'
+            '|', 'fontSize', 'fontColor', '|', 'bulletedList', 'numberedList', 
+            '|', 'imageUpload', 'blockQuote', 'insertTable', 'mediaEmbed'
         ],
+        'height': 400,
+        'width': '100%',
     }
 }
