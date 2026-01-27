@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     'cloudinary_storage',
     'digitalgifts',
     'blog',
+    'django_ckeditor_5',
 ]
 
 MIDDLEWARE = [
