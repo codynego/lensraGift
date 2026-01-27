@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import BlogPost
 from .serializers import BlogPostSerializer
+from rest_framework.permissions import AllowAny
 
 
 class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
@@ -12,6 +13,7 @@ class BlogPostViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = BlogPostSerializer
     lookup_field = 'slug'
+    permission_classes = [AllowAny]
     
     def get_queryset(self):
         """
