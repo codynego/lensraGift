@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'cloudinary_storage',
     'digitalgifts',
+    'blog',
 ]
 
 MIDDLEWARE = [
@@ -258,3 +259,18 @@ CLOUDINARY_STORAGE = {
 
 DEFAULT_FILE_STORAGE = "cloudinary_storage.storage.MediaCloudinaryStorage"
 
+
+
+CKEDITOR_5_CONFIGS = {
+    'extends': {
+        'blockToolbar': [
+            'paragraph', 'heading1', 'heading2', 'heading3',
+            '|', 'bulletedList', 'numberedList',
+        ],
+        'toolbar': [
+            'heading', '|', 'bold', 'italic', 'link', 'underline', 'strikethrough',
+            '|', 'fontSize', 'fontColor', 'fontBackgroundColor',
+            '|', 'imageUpload', 'mediaEmbed', 'insertTable', 'sourceEditing'
+        ],
+    }
+}
