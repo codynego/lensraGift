@@ -17,7 +17,7 @@ class BlogPost(models.Model):
     # Link to Category
     category = models.ForeignKey(
         BlogCategory, 
-        on_report=models.SET_NULL, 
+        on_delete=models.SET_NULL, 
         null=True, 
         blank=True, 
         related_name="posts"
