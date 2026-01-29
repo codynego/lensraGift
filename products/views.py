@@ -74,28 +74,33 @@ class FeaturedProductsView(generics.ListAPIView):
 
 
 
-from django.db.models import Count, Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
+from rest_framework import status
+from django.db.models import Count, Q
 from .models import Product
 from .serializers import ProductSerializer
 
 class GiftRecommendationsView(APIView):
     permission_classes = [AllowAny]
     
-    def post(self, request): # Changed to POST to match your latest frontend request
-        tag_slugs = request.data.get('tags', [])
+    def get(self, request):
+        # 1. Extract tag slugs from the URL query params
+        raw_tags = request.query_params.get('tags', '')
+        if not raw_tags:
+            return Response({"results": []})
+            
+        tag_slugs = [t.strip() for t in raw_tags.split(',') if t.strip()]
         
-        # 1. Start with active products
-        query = Q(is_active=True)
-        
-        # 2. Add budget logic (Optional: removing 'budget-mid' from tags to avoid filtering issues)
+        # 2. Separate price tags from descriptive tags for cleaner logic
         price_tags = [t for t in tag_slugs if t.startswith('budget-')]
-        other_tags = [t for t in tag_slugs if not t.startswith('budget-')]
+        interest_tags = [t for t in tag_slugs if not t.startswith('budget-')]
         
-        products = Product.objects.filter(query)
+        # 3. Base Query: Only active products
+        products = Product.objects.filter(is_active=True)
 
+        # 4. Apply Hard Budget Filters (if applicable)
         if 'budget-low' in price_tags:
             products = products.filter(base_price__lt=15000)
         elif 'budget-mid' in price_tags:
@@ -103,16 +108,17 @@ class GiftRecommendationsView(APIView):
         elif 'budget-high' in price_tags:
             products = products.filter(base_price__gt=50000)
 
-        # 3. THE RELEVANCE ENGINE:
-        # We filter for products that have at least one matching tag,
-        # then we count how many of the requested tags each product has.
-        products = products.filter(tags__slug__in=other_tags) \
-            .annotate(num_matches=Count('tags', filter=Q(tags__slug__in=other_tags))) \
-            .order_by('-num_matches', '-is_featured', 'base_price') \
+        # 5. THE RANKING ENGINE: 
+        # - Filter for products containing at least one of the interest tags
+        # - Count how many of those tags match (relevance score)
+        # - Order by the count (descending) then by featured status
+        products = products.filter(tags__slug__in=interest_tags) \
+            .annotate(relevance_score=Count('tags', filter=Q(tags__slug__in=interest_tags))) \
+            .order_by('-relevance_score', '-is_featured', 'base_price') \
             .distinct()
 
-        # 4. Limit to top 10
+        # 6. Final limit and serialize
         results = products[:10]
-
         serializer = ProductSerializer(results, many=True)
-        return Response({"results": serializer.data})
+        
+        return Response({"results": serializer.data}, status=status.HTTP_200_OK)
