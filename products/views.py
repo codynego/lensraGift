@@ -74,37 +74,45 @@ class FeaturedProductsView(generics.ListAPIView):
 
 
 
-
+from django.db.models import Count, Q
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 from .models import Product
 from .serializers import ProductSerializer
-from django.db.models import Count
 
 class GiftRecommendationsView(APIView):
     permission_classes = [AllowAny]
     
-    def get(self, request):
-        # 1. Get slugs from the frontend
-        tag_slugs = request.query_params.get('tags', '').split(',')
-        print(f"Received tag slugs for gift recommendations: {tag_slugs}")
+    def post(self, request): # Changed to POST to match your latest frontend request
+        tag_slugs = request.data.get('tags', [])
         
-        # 2. Filter products that match the slugs
-        # Use .distinct() to avoid showing the same product twice if it matches 2 tags
-        products = Product.objects.filter(
-            tags__slug__in=tag_slugs, 
-            is_active=True 
-        ).distinct()
-        print(f"Found {products.count()} products matching tags: {tag_slugs}")
+        # 1. Start with active products
+        query = Q(is_active=True)
+        
+        # 2. Add budget logic (Optional: removing 'budget-mid' from tags to avoid filtering issues)
+        price_tags = [t for t in tag_slugs if t.startswith('budget-')]
+        other_tags = [t for t in tag_slugs if not t.startswith('budget-')]
+        
+        products = Product.objects.filter(query)
 
-        # 3. Handle Budget (Optional but highly recommended)
-        # If one of your tags is 'budget-mid', you can define that range here
-        if 'budget-mid' in tag_slugs:
+        if 'budget-low' in price_tags:
+            products = products.filter(base_price__lt=15000)
+        elif 'budget-mid' in price_tags:
             products = products.filter(base_price__range=(15000, 50000))
-            print(f"Filtered products by budget-mid range: {products.count()}")
+        elif 'budget-high' in price_tags:
+            products = products.filter(base_price__gt=50000)
 
-        # 4. Limit to 10 best matches
-        products = products[:10]
+        # 3. THE RELEVANCE ENGINE:
+        # We filter for products that have at least one matching tag,
+        # then we count how many of the requested tags each product has.
+        products = products.filter(tags__slug__in=other_tags) \
+            .annotate(num_matches=Count('tags', filter=Q(tags__slug__in=other_tags))) \
+            .order_by('-num_matches', '-is_featured', 'base_price') \
+            .distinct()
 
-        serializer = ProductSerializer(products, many=True)
+        # 4. Limit to top 10
+        results = products[:10]
+
+        serializer = ProductSerializer(results, many=True)
         return Response({"results": serializer.data})
