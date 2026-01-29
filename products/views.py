@@ -81,33 +81,13 @@ from .models import Product
 from .serializers import ProductSerializer
 from django.db.models import Count
 
-class GiftRecommendationView(APIView):
+class GiftRecommendationsView(APIView):
     def get(self, request):
-        # 1. Get parameters from Next.js request
-        tags_raw = request.query_params.get('tags', '')
-        max_price = request.query_params.get('price')
-        
-        tag_list = [tag.strip() for tag in tags_raw.split(',') if tag.strip()]
-        
-        # 2. Start with a base queryset
-        queryset = Product.objects.all()
-
-        # 3. Filter by Price (if provided)
-        if max_price:
-            queryset = queryset.filter(base_price__lte=max_price)
-
-        # 4. Filter by Tags and Rank by Relevance
-        # We want products that match the MOST tags to appear first
-        if tag_list:
-            queryset = queryset.filter(tags__slug__in=tag_list).annotate(
-                match_count=Count('tags')
-            ).order_by('-match_count', '-id')
-
-        # 5. Limit results to top 6 for a clean UI
-        recommendations = queryset[:6]
-        
-        serializer = ProductSerializer(recommendations, many=True)
-        return Response({
-            "count": len(serializer.data),
-            "results": serializer.data
-        })
+        tags = request.query_params.get('tags', '').split(',')  # e.g., ['romance', 'anniversary', 'budget-mid']
+        # Logic to filter products based on tags (customize as needed)
+        # Example: Filter products with matching tags (assuming a 'tags' field or ManyToMany)
+        products = Product.objects.filter(tags__name__in=tags, is_customizable=True)[:10]  # Limit results
+        # Serialize the data (use your ProductSerializer)
+        from .serializers import ProductSerializer
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
