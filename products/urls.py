@@ -5,7 +5,8 @@ from .views import (
     DesignPlacementCreateView,
     CategoryListView,
     FeaturedProductsView,
-    ProductDetail
+    ProductDetail,
+    GiftRecommendationView,
 )
 
 app_name = 'products'
@@ -23,4 +24,5 @@ urlpatterns = [
     # This captures everything else, so it must be at the bottom
     path('<slug:slug>/', ProductDetailView.as_view(), name='product-detail'),
     path('id/<int:id>/', ProductDetail.as_view(), name='product-detail-by-id'),
+    path('gift-finder/recommendations/', GiftRecommendationView.as_view(), name='gift-recommendations'),
 ]

@@ -40,32 +40,44 @@ class AttributeAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
+    # 1. Added 'get_tags' and cleaned up the trailing empty string
     list_display = (
-        'name', 'get_categories', 'base_price', 'min_order_quantity', 
-        'is_active', 'is_featured', 'is_trending'
+        'name', 'get_categories', 'get_tags', 'base_price', 
+        'min_order_quantity', 'is_active', 'is_featured', 'is_trending'
     )
-    list_filter = ('categories', 'is_active', 'is_featured', 'is_trending')
-    search_fields = ('name', 'categories__name')
+    
+    # 2. Added 'tags' to filters so you can quickly find 'Valentine' or 'For Her' gifts
+    list_filter = ('categories', 'tags', 'is_active', 'is_featured', 'is_trending')
+    
+    search_fields = ('name', 'categories__name', 'tags__name')
     prepopulated_fields = {'slug': ('name',)}
     
-    # NEW: All related sections are now managed inside the Product page
+    # 3. THIS IS KEY: Makes the tag selection a nice side-by-side search box
+    filter_horizontal = ('categories', 'tags')
+    
     inlines = [ProductImageInline, ProductVariantInline, PrintableAreaInline]
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'slug', 'categories', 'image', 'base_price', 'description')
+            'fields': ('name', 'slug', ('categories', 'tags'), 'image', 'base_price', 'description')
         }),
         ('Inventory Settings', {
             'fields': ('min_order_quantity', 'is_customizable')
         }),
         ('Status & Visibility', {
-            'fields': ('is_active', 'is_featured', 'is_trending')
+            'fields': (('is_active', 'is_featured', 'is_trending'),)
         }),
     )
 
+    # Helper to show Categories in the list view
     def get_categories(self, obj):
         return ", ".join([c.name for c in obj.categories.all()])
     get_categories.short_description = 'Categories'
+
+    # 4. NEW: Helper to show Tags in the list view
+    def get_tags(self, obj):
+        return ", ".join([t.name for t in obj.tags.all()])
+    get_tags.short_description = 'Gift Finder Tags'
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):

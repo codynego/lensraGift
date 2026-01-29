@@ -1,9 +1,16 @@
 from rest_framework import serializers
 from .models import (
     Product, ProductImage, PrintableArea, DesignPlacement, 
-    Category, Attribute, AttributeValue, ProductVariant
+    Category, Attribute, AttributeValue, ProductVariant, Tag
 )
 from designs.models import Design 
+
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ['name', 'slug']
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -69,16 +76,17 @@ class ProductSerializer(serializers.ModelSerializer):
     gallery = ProductImageSerializer(many=True, read_only=True)
     category_name = serializers.SerializerMethodField()
     image_url = serializers.SerializerMethodField()
+    tags = TagSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'slug', 'base_price', 'image', 'image_url', 'gallery',
             'min_order_quantity', 'description', 'is_customizable', 
-            'printable_areas', 'variants', 'category_name',
+            'printable_areas', 'variants', 'category_name', 'tags',
             'is_featured', 'is_trending', 'is_active'
         ]
-        read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable']
+        read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable', 'tags']
 
     def get_image_url(self, obj):
         if obj.image:
