@@ -83,11 +83,23 @@ from django.db.models import Count
 
 class GiftRecommendationsView(APIView):
     def get(self, request):
-        tags = request.query_params.get('tags', '').split(',')  # e.g., ['romance', 'anniversary', 'budget-mid']
-        # Logic to filter products based on tags (customize as needed)
-        # Example: Filter products with matching tags (assuming a 'tags' field or ManyToMany)
-        products = Product.objects.filter(tags__name__in=tags, is_customizable=True)[:10]  # Limit results
-        # Serialize the data (use your ProductSerializer)
-        from .serializers import ProductSerializer
+        # 1. Get slugs from the frontend
+        tag_slugs = request.query_params.get('tags', '').split(',')
+        
+        # 2. Filter products that match the slugs
+        # Use .distinct() to avoid showing the same product twice if it matches 2 tags
+        products = Product.objects.filter(
+            tags__slug__in=tag_slugs, 
+            is_active=True 
+        ).distinct()
+
+        # 3. Handle Budget (Optional but highly recommended)
+        # If one of your tags is 'budget-mid', you can define that range here
+        if 'budget-mid' in tag_slugs:
+            products = products.filter(base_price__range=(15000, 50000))
+
+        # 4. Limit to 10 best matches
+        products = products[:10]
+
         serializer = ProductSerializer(products, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({"results": serializer.data})
