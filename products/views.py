@@ -82,6 +82,7 @@ from .serializers import ProductSerializer
 from django.db.models import Count
 
 class GiftRecommendationsView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         # 1. Get slugs from the frontend
         tag_slugs = request.query_params.get('tags', '').split(',')
