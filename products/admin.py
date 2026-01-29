@@ -8,9 +8,16 @@ from .models import (
 # --- INLINES ---
 
 
-class TagInline(admin.TabularInline):
-    model = Tag
-    extra = 1
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
+    # Displays the name and slug in the list view for easy management
+    list_display = ('name', 'slug')
+    
+    # Automatically fills the slug field based on what you type in the name field
+    prepopulated_fields = {'slug': ('name',)}
+    
+    # Allows you to search for tags quickly
+    search_fields = ('name',)
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -60,7 +67,7 @@ class ProductAdmin(admin.ModelAdmin):
     # 3. THIS IS KEY: Makes the tag selection a nice side-by-side search box
     filter_horizontal = ('categories', 'tags')
     
-    inlines = [ProductImageInline, ProductVariantInline, PrintableAreaInline, TagInline]
+    inlines = [ProductImageInline, ProductVariantInline, PrintableAreaInline]
     
     fieldsets = (
         ('Basic Information', {
@@ -83,6 +90,11 @@ class ProductAdmin(admin.ModelAdmin):
     def get_tags(self, obj):
         return ", ".join([t.name for t in obj.tags.all()])
     get_tags.short_description = 'Gift Finder Tags'
+
+    def get_queryset(self, request):
+        # This tells Django to "pre-fetch" the tags and categories in 
+        # a single efficient query instead of one by one.
+        return super().get_queryset(request).prefetch_related('categories', 'tags')
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
