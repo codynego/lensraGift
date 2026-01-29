@@ -85,6 +85,7 @@ class GiftRecommendationsView(APIView):
     def get(self, request):
         # 1. Get slugs from the frontend
         tag_slugs = request.query_params.get('tags', '').split(',')
+        print(f"Received tag slugs for gift recommendations: {tag_slugs}")
         
         # 2. Filter products that match the slugs
         # Use .distinct() to avoid showing the same product twice if it matches 2 tags
@@ -92,11 +93,13 @@ class GiftRecommendationsView(APIView):
             tags__slug__in=tag_slugs, 
             is_active=True 
         ).distinct()
+        print(f"Found {products.count()} products matching tags: {tag_slugs}")
 
         # 3. Handle Budget (Optional but highly recommended)
         # If one of your tags is 'budget-mid', you can define that range here
         if 'budget-mid' in tag_slugs:
             products = products.filter(base_price__range=(15000, 50000))
+            print(f"Filtered products by budget-mid range: {products.count()}")
 
         # 4. Limit to 10 best matches
         products = products[:10]
