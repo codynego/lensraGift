@@ -2,10 +2,15 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
     Category, Product, ProductImage, PrintableArea, 
-    DesignPlacement, Attribute, AttributeValue, ProductVariant
+    DesignPlacement, Attribute, AttributeValue, ProductVariant, Tag
 )
 
 # --- INLINES ---
+
+
+class TagInline(admin.TabularInline):
+    model = Tag
+    extra = 1
 
 class ProductImageInline(admin.TabularInline):
     model = ProductImage
@@ -55,7 +60,7 @@ class ProductAdmin(admin.ModelAdmin):
     # 3. THIS IS KEY: Makes the tag selection a nice side-by-side search box
     filter_horizontal = ('categories', 'tags')
     
-    inlines = [ProductImageInline, ProductVariantInline, PrintableAreaInline]
+    inlines = [ProductImageInline, ProductVariantInline, PrintableAreaInline, TagInline]
     
     fieldsets = (
         ('Basic Information', {
