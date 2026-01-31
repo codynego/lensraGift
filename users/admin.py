@@ -62,3 +62,19 @@ class AddressAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+from .models import EmailSubscriber
+
+@admin.register(EmailSubscriber)
+class EmailSubscriberAdmin(admin.ModelAdmin):
+    list_display = ('email', 'subscribed_at', 'is_active')
+    list_filter = ('is_active', 'subscribed_at')
+    search_fields = ('email',)
+    readonly_fields = ('subscribed_at',)
+    
+    fieldsets = (
+        ('Subscriber Info', {
+            'fields': ('email', 'is_active', 'subscribed_at')
+        }),
+    )
