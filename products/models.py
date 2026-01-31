@@ -15,12 +15,13 @@ class Tag(models.Model):
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(unique=True, null=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='subcategories')
 
     class Meta:
         verbose_name_plural = "Categories"
     
     def __str__(self): 
-        return self.name
+        return self.name  
 
 class Product(models.Model):
     name = models.CharField(max_length=255)

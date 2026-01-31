@@ -13,9 +13,32 @@ class TagSerializer(serializers.ModelSerializer):
         fields = ['name', 'slug']
 
 class CategorySerializer(serializers.ModelSerializer):
+    parent_id = serializers.IntegerField(source='parent.id', read_only=True)  # Simple parent ID
+    parent_name = serializers.CharField(source='parent.name', read_only=True, allow_null=True)  # Optional: Parent name
+    subcategories = serializers.SerializerMethodField()  # For nested subcats (limited depth)
+    full_path = serializers.SerializerMethodField()  # Computed full category path
+
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug']
+        fields = ['id', 'name', 'slug', 'parent_id', 'parent_name', 'subcategories', 'full_path']
+
+    def get_subcategories(self, obj):
+        # Recursively serialize subcategories, but limit depth to avoid infinite loops
+        # Use context to track depth if needed (e.g., pass {'depth': 1} in view)
+        depth = self.context.get('depth', 0)
+        if depth > 2:  # Arbitrary max depth to prevent deep nesting
+            return []
+        subcategory_qs = obj.subcategories.all()
+        return CategorySerializer(subcategory_qs, many=True, context={'depth': depth + 1}).data
+
+    def get_full_path(self, obj):
+        # Build a breadcrumb-style path: "Grandparent > Parent > Name"
+        path = []
+        current = obj
+        while current:
+            path.append(current.name)
+            current = current.parent
+        return ' > '.join(reversed(path)) if path else obj.name
 
 # --- NEW IMAGE SERIALIZER ---
 
@@ -74,7 +97,8 @@ class ProductSerializer(serializers.ModelSerializer):
     printable_areas = PrintableAreaSerializer(many=True, read_only=True)
     variants = ProductVariantSerializer(many=True, read_only=True)
     gallery = ProductImageSerializer(many=True, read_only=True)
-    category_name = serializers.SerializerMethodField()
+    categories = CategorySerializer(many=True, read_only=True)  # Optional: Full category details
+    category_path = serializers.SerializerMethodField()  # Replaces category_name
     image_url = serializers.SerializerMethodField()
     tags = TagSerializer(many=True, read_only=True)
 
@@ -83,8 +107,8 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'base_price', 'image', 'image_url', 'gallery',
             'min_order_quantity', 'description', 'is_customizable', 
-            'printable_areas', 'variants', 'category_name', 'tags',
-            'is_featured', 'is_trending', 'is_active'
+            'printable_areas', 'variants', 'tags',
+            'is_featured', 'is_trending', 'is_active', 'categories', 'category_path'
         ]
         read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable', 'tags']
 
@@ -108,23 +132,27 @@ class ProductSerializer(serializers.ModelSerializer):
             return url
         return None
 
-    def get_category_name(self, obj):
+    def get_category_path(self, obj):
         if obj.categories.exists():
-            return obj.categories.first().name
+            primary_cat = obj.categories.first()
+            return CategorySerializer(primary_cat).data.get('full_path')  # Use the new full_path
         return None
+
 
 
 class ProductListSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
     image_url = serializers.SerializerMethodField()
-    category_name = serializers.SerializerMethodField()
+    categories = CategorySerializer(many=True, read_only=True)  # Optional: Full category details
+    category_path = serializers.SerializerMethodField()  # Replaces category_name
+    tags = TagSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         fields = [
             'id', 'name', 'slug', 'base_price', 'image', 'image_url', 
             'min_order_quantity', 'is_featured', 'is_customizable', 
-            'is_trending', 'variants', 'category_name'
+            'is_trending', 'variants', 'categories', 'category_path', 'tags'
         ]
 
     def get_image_url(self, obj):
@@ -147,9 +175,10 @@ class ProductListSerializer(serializers.ModelSerializer):
             return url
         return None
 
-    def get_category_name(self, obj):
+    def get_category_path(self, obj):
         if obj.categories.exists():
-            return obj.categories.first().name
+            primary_cat = obj.categories.first()
+            return CategorySerializer(primary_cat).data.get('full_path')  # Use the new full_path
         return None
 
 class DesignPlacementSerializer(serializers.ModelSerializer):
