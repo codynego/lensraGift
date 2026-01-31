@@ -35,6 +35,7 @@ ALLOWED_HOSTS = ["*"]
 CORS_ALLOWED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
+    "https://lensra.com",
     "https://api.lensra.com",
     "http://localhost:3000",  # Added port 3000
     "http://127.0.0.1:3000", # Added port 3000
@@ -44,6 +45,7 @@ CORS_ALLOWED_ORIGINS = [
 CSRF_TRUSTED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
+    "https://lensra.com",
     "https://api.lensra.com",
     "http://localhost:3000",  # Added port 3000
     "http://127.0.0.1:3000", # Added port 3000
