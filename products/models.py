@@ -19,6 +19,17 @@ class Category(models.Model):
 
     class Meta:
         verbose_name_plural = "Categories"
+
+    def get_full_path(self):
+        full_path = [self.name]
+        k = self.parent
+        while k is not None:
+            full_path.append(k.name)
+            k = k.parent
+        return ' -> '.join(full_path[::-1])
+
+    def __str__(self):
+        return self.get_full_path()
     
     def __str__(self): 
         return self.name  
