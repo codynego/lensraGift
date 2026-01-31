@@ -14,6 +14,7 @@ urlpatterns = [
 
     # Detail, Update, Delete
     path('addresses/<int:pk>/', AddressDetailView.as_view(), name='address-detail'),
+    path('subscribe/', EmailSubscribeView.as_view(), name='email-subscribe'),
     
     # Specific action to set default
     path('addresses/<int:pk>/set-default/', SetDefaultAddressView.as_view(), name='address-set-default'),

@@ -140,3 +140,19 @@ class SetDefaultAddressView(APIView):
         address.is_default = True
         address.save() # The model save method handles unsetting other defaults
         return Response({"message": f"Address {pk} is now the default"})
+
+
+
+
+from rest_framework.permissions import AllowAny
+from .models import EmailSubscriber
+from .serializers import EmailSubscriberSerializer
+
+class EmailSubscribeView(generics.CreateAPIView):
+    queryset = EmailSubscriber.objects.all()
+    serializer_class = EmailSubscriberSerializer
+    permission_classes = [AllowAny]
+
+    def perform_create(self, serializer):
+        # You could trigger a 'Welcome Email' here via a background task
+        serializer.save()

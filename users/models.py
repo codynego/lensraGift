@@ -101,3 +101,19 @@ class Address(models.Model):
         if self.is_default:
             Address.objects.filter(user=self.user, is_default=True).update(is_default=False)
         super().save(*args, **kwargs)
+
+
+
+
+class EmailSubscriber(models.Model):
+    email = models.EmailField(unique=True)
+    source = models.CharField(
+        max_length=50,
+        choices=[
+            ('first_gift_popup', 'First Gift Popup'),
+            ('checkout', 'Checkout'),
+            ('gift_reminder', 'Gift Reminder'),
+        ]
+    )
+    subscribed_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)

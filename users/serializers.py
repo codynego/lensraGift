@@ -90,3 +90,19 @@ class UserLoginSerializer(serializers.Serializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
 
+
+
+from .models import EmailSubscriber
+
+class EmailSubscriberSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailSubscriber
+        fields = ['id', 'email', 'source', 'subscribed_at', 'is_active']
+        read_only_fields = ['id', 'subscribed_at', 'is_active']
+
+    def validate_email(self, value):
+        # Normalizing email to lowercase for consistency
+        email = value.lower()
+        if EmailSubscriber.objects.filter(email=email).exists():
+            raise serializers.ValidationError("You are already part of the Lensra inner circle! ✨")
+        return email
