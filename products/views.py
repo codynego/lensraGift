@@ -6,9 +6,14 @@ from .serializers import (
     ProductSerializer, 
     ProductListSerializer, 
     DesignPlacementSerializer,
-    CategorySerializer
+    CategorySerializer,
+    TagSerializer,
 )
 import django_filters
+
+
+
+
 
 class ProductFilter(django_filters.FilterSet):
     min_price = django_filters.NumberFilter(field_name="base_price", lookup_expr='gte')
@@ -23,6 +28,12 @@ class CategoryListView(generics.ListAPIView):
     """Returns list of categories for navigation/filtering."""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+
+class TagListView(generics.ListAPIView):
+    """Returns list of tags for filtering."""
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
 class ProductListView(generics.ListAPIView):

@@ -42,8 +42,23 @@ class AttributeValueInline(admin.TabularInline):
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug')
+    list_display = ('get_full_path', 'slug')  # Updated to show hierarchy
     prepopulated_fields = {'slug': ('name',)}
+    list_filter = ('parent',)  # Added filter by parent
+    search_fields = ('name', 'parent__name')  # Search by name or parent name
+    
+    # Add 'parent' to the form fields
+    fields = ('name', 'slug', 'parent')
+
+    def get_full_path(self, obj):
+        # Build a breadcrumb-style path: "Grandparent > Parent > Name"
+        path = []
+        current = obj
+        while current:
+            path.append(current.name)
+            current = current.parent
+        return ' > '.join(reversed(path)) if path else obj.name
+    get_full_path.short_description = 'Category Path'
 
 @admin.register(Attribute)
 class AttributeAdmin(admin.ModelAdmin):
@@ -52,7 +67,7 @@ class AttributeAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    # 1. Added 'get_tags' and cleaned up the trailing empty string
+    # 1. Updated 'get_categories' to show hierarchical paths
     list_display = (
         'name', 'get_categories', 'get_tags', 'base_price', 
         'min_order_quantity', 'is_active', 'is_featured', 'is_trending'
@@ -81,9 +96,9 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Helper to show Categories in the list view
+    # Updated helper to show Categories with paths in the list view
     def get_categories(self, obj):
-        return ", ".join([c.name for c in obj.categories.all()])
+        return ", ".join([cat.get_full_path() for cat in obj.categories.all()])  # Assumes get_full_path added to Category model
     get_categories.short_description = 'Categories'
 
     # 4. NEW: Helper to show Tags in the list view

@@ -7,6 +7,7 @@ from .views import (
     FeaturedProductsView,
     ProductDetail,
     GiftRecommendationsView,
+    TagListView
 )
 
 app_name = 'products'
@@ -14,6 +15,7 @@ app_name = 'products'
 urlpatterns = [
     # 1. Static/List Routes (Place these first)
     path('', ProductListView.as_view(), name='product-list'),
+    path('tags/', TagListView.as_view(), name='tag-list'),
     path('categories/', CategoryListView.as_view(), name='category-list'),
     path('featured/', FeaturedProductsView.as_view(), name='featured-products'),
     path('gift-finder/recommendations/', GiftRecommendationsView.as_view(), name='gift-recommendations'),
