@@ -278,3 +278,57 @@ class ShippingOptionListView(generics.ListAPIView):
     queryset = ShippingOption.objects.filter(additional_cost__gte=0) # Only active options
     serializer_class = ShippingOptionSerializer
     permission_classes = [AllowAny]
+
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
+from decimal import Decimal
+from .models import Coupon
+
+class ValidateCouponView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        code = request.data.get('code')
+        subtotal = request.data.get('subtotal')
+
+        if not code:
+            return Response({"error": "Please enter a coupon code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            # Case-insensitive lookup
+            coupon = Coupon.objects.get(code__iexact=code)
+            
+            # 1. Check basic validity (active, expired, usage limits)
+            if not coupon.can_be_used():
+                return Response({"error": "This coupon is no longer valid."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 2. Check minimum order amount
+            if subtotal:
+                subtotal_dec = Decimal(str(subtotal))
+                if coupon.min_order_amount and subtotal_dec < coupon.min_order_amount:
+                    return Response({
+                        "error": f"Minimum order of ₦{coupon.min_order_amount:,.2f} required for this code."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                subtotal_dec = Decimal('0.00')
+
+            # 3. Calculate the discount preview
+            if coupon.discount_type == Coupon.PERCENTAGE:
+                discount_amount = (coupon.value / 100) * subtotal_dec
+            else:
+                discount_amount = coupon.value
+
+            return Response({
+                "valid": True,
+                "code": coupon.code,
+                "discount_type": coupon.discount_type,
+                "value": coupon.value,
+                "discount_amount": float(min(discount_amount, subtotal_dec))
+            }, status=status.HTTP_200_OK)
+
+        except Coupon.DoesNotExist:
+            return Response({"error": "Invalid coupon code."}, status=status.HTTP_404_NOT_FOUND)

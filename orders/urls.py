@@ -18,4 +18,5 @@ urlpatterns = [
 
     path('shipping/zones/', views.ShippingZoneListView.as_view(), name='shipping-zones'),
     path('shipping/options/', views.ShippingOptionListView.as_view(), name='shipping-options'),
+    path('validate-coupon/', views.ValidateCouponView.as_view(), name='validate-coupon'),
 ]
