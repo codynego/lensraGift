@@ -36,8 +36,8 @@ CORS_ALLOWED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
     "https://api.lensra.com",
-    "http://127.0.0.1",
-    "http://localhost",
+    "http://localhost:3000",  # Added port 3000
+    "http://127.0.0.1:3000", # Added port 3000
 ]
 
 # Ensure CSRF works for your forms
@@ -45,22 +45,14 @@ CSRF_TRUSTED_ORIGINS = [
     "https://lensra-gift-ui.vercel.app",
     "https://www.lensra.com",
     "https://api.lensra.com",
-    "http://127.0.0.1",
-    "http://localhost",
+    "http://localhost:3000",  # Added port 3000
+    "http://127.0.0.1:3000", # Added port 3000
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'accept-encoding',
-    'authorization',  # If using tokens
-    'content-type',   # This is the key fix—add it if missing
-    'dnt',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-    "x-session-id", 
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-session-id",
+    "content-type", # Explicitly re-confirming this
 ]
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -70,7 +62,7 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
-
+CORS_ALLOW_CREDENTIALS = True
 # Application definition
 
 INSTALLED_APPS = [
