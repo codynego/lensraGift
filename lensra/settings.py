@@ -18,7 +18,6 @@ from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-from corsheaders.defaults import default_headers
 
 
 # Quick-start development settings - unsuitable for production
@@ -51,9 +50,17 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
-CORS_ALLOW_HEADERS = list(default_headers) + [
-    "x-session-id",
-    "content-type", # Explicitly re-confirming this
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',  # If using tokens
+    'content-type',   # This is the key fix—add it if missing
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    "x-session-id", 
 ]
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -63,7 +70,7 @@ CORS_ALLOW_METHODS = [
     'POST',
     'PUT',
 ]
-CORS_ALLOW_CREDENTIALS = True
+
 # Application definition
 
 INSTALLED_APPS = [
