@@ -4,6 +4,57 @@ from django.core.validators import MinValueValidator
 from products.models import Product, DesignPlacement, ProductVariant
 import uuid
 
+
+from django.db import models
+from django.utils import timezone
+
+
+class Coupon(models.Model):
+    PERCENTAGE = "percentage"
+    FIXED = "fixed"
+
+    DISCOUNT_TYPE_CHOICES = [
+        (PERCENTAGE, "Percentage"),
+        (FIXED, "Fixed Amount"),
+    ]
+
+    code = models.CharField(max_length=50, unique=True)
+    discount_type = models.CharField(
+        max_length=20,
+        choices=DISCOUNT_TYPE_CHOICES
+    )
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+    is_active = models.BooleanField(default=True)
+    max_uses = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Leave empty for unlimited use"
+    )
+    used_count = models.PositiveIntegerField(default=0)
+
+    min_order_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True, blank=True
+    )
+    expires_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return self.expires_at and timezone.now() > self.expires_at
+
+    def can_be_used(self):
+        if not self.is_active:
+            return False
+        if self.is_expired():
+            return False
+        if self.max_uses and self.used_count >= self.max_uses:
+            return False
+        return True
+
+    def __str__(self):
+        return self.code
+
+
 class CartItem(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
@@ -84,6 +135,11 @@ class ShippingOption(models.Model):
         return f"{self.name} (+ ₦{self.additional_cost})"
 
 
+from django.conf import settings
+from django.core.validators import MinValueValidator
+from django.db import models
+
+
 class Order(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -94,52 +150,110 @@ class Order(models.Model):
     ]
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
         related_name='orders'
     )
     guest_email = models.EmailField(max_length=255, blank=True, null=True)
+
     order_number = models.CharField(max_length=50, unique=True, db_index=True)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending'
+    )
+
+    # -----------------
     # Financial Totals
-    # subtotal_amount: Sum of items before shipping
-    subtotal_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    # total_amount: items + shipping
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
-    
-    # --- New Shipping Links & Snapshots ---
+    # -----------------
+
+    # Items only (before shipping & discount)
+    subtotal_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
+
+    # Items + shipping (before discount)
+    total_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
+
+    # -------- Coupon Snapshot --------
+    applied_coupon = models.ForeignKey(
+        'Coupon',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='orders'
+    )
+
+    discount_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
+    # ---------------------------------
+
+    # Final amount to be paid (THIS is what payment gateway sees)
+    payable_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(0)]
+    )
+
+    # -----------------
+    # Shipping Links & Snapshots
+    # -----------------
     shipping_location = models.ForeignKey(
-        'ShippingLocation', 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        'ShippingLocation',
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='orders'
     )
     shipping_option = models.ForeignKey(
-        'ShippingOption', 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        'ShippingOption',
+        on_delete=models.SET_NULL,
+        null=True,
         related_name='orders'
     )
-    
-    # We store these as hard numbers so they NEVER change if you update prices later
-    shipping_base_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    shipping_option_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    # --------------------------------------
+
+    # Hard snapshots (never change)
+    shipping_base_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
+    shipping_option_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.00
+    )
+    # ---------------------------------
 
     shipping_address = models.TextField()
-    shipping_city = models.CharField(max_length=100) # Still good to keep as text for backup
+    shipping_city = models.CharField(max_length=100)
     shipping_state = models.CharField(max_length=100)
     shipping_country = models.CharField(max_length=100, default='Nigeria')
     phone_number = models.CharField(max_length=20)
-    
+
+    # -----------------
+    # Payment
+    # -----------------
     payment_reference = models.CharField(max_length=255, blank=True, null=True)
-    session_id = models.CharField(max_length=100, blank=True, null=True, db_index=True)
+    session_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        db_index=True
+    )
     is_paid = models.BooleanField(default=False)
     paid_at = models.DateTimeField(blank=True, null=True)
-    
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -150,7 +264,21 @@ class Order(models.Model):
     def total_shipping_cost(self):
         return self.shipping_base_cost + self.shipping_option_cost
 
-        
+
+
+class CouponRedemption(models.Model):
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        "auth.User",
+        on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    redeemed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.coupon.code} used on order {self.order.id}"
+
 
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')

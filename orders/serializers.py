@@ -2,7 +2,7 @@ import uuid
 from rest_framework import serializers
 from django.db.models import Sum
 from .models import CartItem, Order, OrderItem
-from products.models import Product, DesignPlacement, ProductVariant
+from products.models import Product, DesignPlacement, ProductVariant, Coupon, CouponRedemption
 from products.serializers import ProductSerializer, DesignPlacementSerializer, ProductVariantSerializer
 
 class CartSummarySerializer(serializers.Serializer):
@@ -67,18 +67,19 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 # 3. ORDER CREATE SERIALIZER (Transfers Cart data to Order)
 import uuid
-from rest_framework import serializers
-from django.conf import settings
+from decimal import Decimal
 from django.db import transaction
-from .models import Order, OrderItem, ShippingLocation, ShippingOption
-from .models import CartItem #
+from django.utils import timezone
+from rest_framework import serializers
+from .models import Order, OrderItem, CartItem, ShippingLocation, ShippingOption, Coupon, CouponRedemption
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     session_id = serializers.CharField(write_only=True, required=False, allow_blank=True)
     address_id = serializers.IntegerField(write_only=True, required=False)
+    coupon_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
     
-    # New required fields for the shipping system
+    # Required IDs for logic
     shipping_location_id = serializers.IntegerField(write_only=True)
     shipping_option_id = serializers.IntegerField(write_only=True)
 
@@ -87,7 +88,8 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'shipping_address', 'shipping_city', 'shipping_state', 
             'shipping_country', 'phone_number', 'guest_email', 
-            'session_id', 'address_id', 'shipping_location_id', 'shipping_option_id'
+            'session_id', 'address_id', 'shipping_location_id', 
+            'shipping_option_id', 'coupon_code'
         ]
 
     def validate(self, attrs):
@@ -95,7 +97,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         user = request.user if request.user and request.user.is_authenticated else None
         address_id = attrs.get('address_id')
         
-        # 1. Handle Saved Address vs Manual Entry
+        # 1. Address Logic: Saved vs Manual
         if user and address_id:
             try:
                 from users.models import Address 
@@ -108,15 +110,15 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             except Address.DoesNotExist:
                 raise serializers.ValidationError({"address_id": "Invalid address selected."})
         else:
-            required_fields = ['shipping_address', 'shipping_city', 'shipping_state', 'phone_number']
-            missing = [f for f in required_fields if not attrs.get(f)]
-            if missing:
-                raise serializers.ValidationError({f: "This field is required." for f in missing})
+            required_manual = ['shipping_address', 'shipping_city', 'shipping_state', 'phone_number']
+            for field in required_manual:
+                if not attrs.get(field):
+                    raise serializers.ValidationError({field: "This field is required for manual address entry."})
             
             if not user and not attrs.get('guest_email'):
                 raise serializers.ValidationError({"guest_email": "Email is required for guest checkout."})
 
-        # 2. Validate Shipping Selections
+        # 2. Shipping Validation
         try:
             attrs['location_obj'] = ShippingLocation.objects.get(id=attrs.get('shipping_location_id'))
             attrs['option_obj'] = ShippingOption.objects.get(id=attrs.get('shipping_option_id'))
@@ -132,51 +134,42 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user if request.user and request.user.is_authenticated else None
         
-        # Extract custom data
+        # Extract operational data
         session_id = validated_data.pop('session_id', None)
-        address_id = validated_data.pop('address_id', None)
+        coupon_code = validated_data.pop('coupon_code', None)
         location = validated_data.pop('location_obj')
         option = validated_data.pop('option_obj')
         
-        # Pop IDs to avoid passing them to the Order.objects.create (since we use the objects)
+        # Clean up IDs before creating Order
+        validated_data.pop('address_id', None)
         validated_data.pop('shipping_location_id')
         validated_data.pop('shipping_option_id')
 
-        # 3. Identify Cart
-        if user:
-            cart_queryset = CartItem.objects.filter(user=user)
-        else:
-            cart_queryset = CartItem.objects.filter(session_id=session_id)
-
+        # 3. Cart Identification
+        cart_queryset = CartItem.objects.filter(user=user) if user else CartItem.objects.filter(session_id=session_id)
         if not cart_queryset.exists():
             raise serializers.ValidationError({"error": "Your bag is empty."})
 
-        # 4. Determine Shipping Costs (Snapshots)
-        base_fee = location.zone.base_fee
-        option_fee = option.additional_cost
-        total_shipping = base_fee + option_fee
-
-        # 5. Create Order Instance
+        # 4. Initialize Order (Placeholders for financials)
         order = Order.objects.create(
             user=user,
             session_id=session_id, 
             order_number=f"LRG-{uuid.uuid4().hex[:8].upper()}",
             shipping_location=location,
             shipping_option=option,
-            shipping_base_cost=base_fee,
-            shipping_option_cost=option_fee,
-            total_amount=0, # Placeholder
+            shipping_base_cost=location.zone.base_fee,
+            shipping_option_cost=option.additional_cost,
+            subtotal_amount=0,
+            total_amount=0,
+            payable_amount=0,
             **validated_data
         )
 
-        # 6. Process Items and Transfer Reveal Data
-        product_subtotal = 0
+        # 5. Process Items & Transfer Reveal Data
+        product_subtotal = Decimal('0.00')
         for item in cart_queryset:
-            price = item.product.base_price
-            if item.variant and item.variant.price_override:
-                price = item.variant.price_override
-
-            subtotal = price * item.quantity
+            price = item.variant.price_override if item.variant and item.variant.price_override else item.product.base_price
+            
             OrderItem.objects.create(
                 order=order,
                 product=item.product,
@@ -184,40 +177,83 @@ class OrderCreateSerializer(serializers.ModelSerializer):
                 placement=item.placement,
                 quantity=item.quantity,
                 unit_price=price,
-                subtotal=subtotal,
+                subtotal=price * item.quantity,
                 secret_message=item.secret_message,
                 emotion=item.emotion
             )
-            product_subtotal += subtotal
+            product_subtotal += (price * item.quantity)
 
-        # 7. Update Final Financials
+        # 6. Coupon Logic
+        discount_amount = Decimal('0.00')
+        applied_coupon = None
+
+        if coupon_code:
+            try:
+                coupon = Coupon.objects.get(code__iexact=coupon_code)
+                if coupon.can_be_used():
+                    # Check Minimum Purchase Requirement
+                    if not coupon.min_order_amount or product_subtotal >= coupon.min_order_amount:
+                        if coupon.discount_type == Coupon.PERCENTAGE:
+                            discount_amount = (coupon.value / 100) * product_subtotal
+                        else:
+                            discount_amount = coupon.value
+                        
+                        # Apply and track
+                        discount_amount = min(discount_amount, product_subtotal) # Discount can't exceed product cost
+                        applied_coupon = coupon
+            except Coupon.DoesNotExist:
+                pass # Invalid codes are ignored or could raise an error based on preference
+
+        # 7. Finalize Financials
+        total_shipping = order.shipping_base_cost + order.shipping_option_cost
         order.subtotal_amount = product_subtotal
+        order.discount_amount = discount_amount
+        order.applied_coupon = applied_coupon
         order.total_amount = product_subtotal + total_shipping
+        order.payable_amount = order.total_amount - discount_amount
         order.save()
 
-        # 8. Clear Cart
+        # 8. Record Redemption & Cleanup
+        if applied_coupon:
+            CouponRedemption.objects.create(coupon=applied_coupon, user=user, order=order)
+            applied_coupon.used_count += 1
+            applied_coupon.save()
+
         cart_queryset.delete()
-            
         return order
 
-# For the detail view
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
-    customer_email = serializers.SerializerMethodField()
+    shipping_method = serializers.ReadOnlyField(source='shipping_option.name')
+    shipping_city_name = serializers.ReadOnlyField(source='shipping_location.city_name')
+    coupon_code = serializers.ReadOnlyField(source='applied_coupon.code')
     total_shipping = serializers.ReadOnlyField(source='total_shipping_cost')
-    
+    customer_email = serializers.SerializerMethodField()
+
     class Meta:
         model = Order
         fields = [
-            'id', 'order_number', 'status', 'subtotal_amount', 'total_amount', 
-            'total_shipping', 'shipping_address', 'shipping_city', 
-            'shipping_state', 'shipping_country', 'phone_number', 'is_paid', 
-            'customer_email', 'guest_email', 'created_at', 'items',
+            'id', 'order_number', 'status', 'created_at',
+            'customer_email', 'phone_number', 
+            'shipping_address', 'shipping_city_name', 'shipping_state',
+            'shipping_method', 'total_shipping',
+            'subtotal_amount', 'discount_amount', 'coupon_code', 'payable_amount',
+            'is_paid', 'paid_at', 'items'
         ]
-        read_only_fields = ['id', 'order_number', 'total_amount', 'is_paid', 'created_at']
+        read_only_fields = fields
 
     def get_customer_email(self, obj):
         return obj.user.email if obj.user else obj.guest_email
+
+
+
+class CouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Coupon
+        fields = [
+            'code', 'discount_type', 'value', 
+            'min_order_amount', 'expires_at'
+        ]
 
 
 # serializers.py

@@ -1,23 +1,16 @@
 from django.contrib import admin
-from .models import CartItem, Order, OrderItem
+from .models import CartItem, Order, OrderItem, Coupon, CouponRedemption, ShippingZone, ShippingLocation, ShippingOption
 
 # 1. ORDER ITEMS INLINE
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    # Added 'variant' visibility to the inline
-    readonly_fields = ('get_item_name', 'quantity', 'unit_price', 'subtotal', 'reveal_token', 'secret_message')
-    fields = ('get_item_name', 'quantity', 'unit_price', 'subtotal', 'reveal_token', 'secret_message')
+    # Added Surprise Reveal fields for visibility
+    readonly_fields = ('get_item_name', 'quantity', 'unit_price', 'subtotal', 'reveal_token', 'secret_message', 'emotion')
+    fields = ('get_item_name', 'quantity', 'unit_price', 'subtotal', 'reveal_token', 'secret_message', 'emotion')
 
     def get_item_name(self, obj):
-        """Displays name + attributes (Size/Color) safely."""
-        name = "Unknown Item"
-        if obj.placement and obj.placement.product:
-            name = f"Custom: {obj.placement.product.name}"
-        elif obj.product:
-            name = f"Plain: {obj.product.name}"
-        
-        # Append Variant attributes if they exist
+        name = obj.product.name if obj.product else "Unknown Item"
         if obj.variant:
             attrs = ", ".join([f"{a.attribute.name}: {a.value}" for a in obj.variant.attributes.all()])
             return f"{name} [{attrs}]"
@@ -25,20 +18,49 @@ class OrderItemInline(admin.TabularInline):
     get_item_name.short_description = 'Item & Attributes'
 
 
-# 2. ORDER ADMIN
+# 2. COUPON REDEMPTION INLINE (For Order View)
+class CouponRedemptionInline(admin.StackedInline):
+    model = CouponRedemption
+    extra = 0
+    readonly_fields = ('coupon', 'redeemed_at')
+    can_delete = False
+
+
+# 3. COUPON ADMIN
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = ('code', 'discount_type', 'value', 'is_active', 'used_count', 'max_uses', 'expires_at')
+    list_filter = ('discount_type', 'is_active', 'created_at')
+    search_fields = ('code',)
+    readonly_fields = ('used_count', 'created_at')
+    
+    fieldsets = (
+        ('General Info', {
+            'fields': ('code', 'is_active', 'created_at')
+        }),
+        ('Discount Logic', {
+            'fields': ('discount_type', 'value', 'min_order_amount')
+        }),
+        ('Usage Limits', {
+            'fields': ('max_uses', 'used_count', 'expires_at')
+        }),
+    )
+
+
+# 4. ORDER ADMIN
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    # Added 'shipping_location' and 'status' colors/logic would go here
     list_display = (
         'order_number', 'get_customer', 'status', 'is_paid', 
-        'subtotal_amount', 'total_amount', 'created_at'
+        'payable_amount', 'discount_amount', 'created_at'
     )
-    list_filter = ('status', 'is_paid', 'created_at', 'shipping_option', 'shipping_location__zone')
-    search_fields = ('order_number', 'user__email', 'guest_email', 'phone_number', 'shipping_city')
+    list_filter = ('status', 'is_paid', 'created_at', 'applied_coupon')
+    search_fields = ('order_number', 'user__email', 'guest_email', 'phone_number')
     
-    # These are numbers calculated by the system, so they should be read-only
+    # Financial snapshots + Coupon fields are Read Only
     readonly_fields = (
-        'order_number', 'subtotal_amount', 'total_amount', 
+        'order_number', 'subtotal_amount', 'discount_amount', 
+        'total_amount', 'payable_amount', 'applied_coupon',
         'shipping_base_cost', 'shipping_option_cost', 
         'created_at', 'updated_at', 'paid_at'
     )
@@ -51,12 +73,15 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('status', 'is_paid', 'paid_at', 'payment_reference')
         }),
         ('Financial Breakdown', {
-            'description': 'Snapshot of prices at the time of purchase.',
+            'description': 'Snapshot of prices including applied discounts.',
             'fields': (
                 'subtotal_amount', 
                 'shipping_base_cost', 
                 'shipping_option_cost', 
-                'total_amount'
+                'total_amount',
+                'applied_coupon',
+                'discount_amount',
+                'payable_amount'
             )
         }),
         ('Shipping Logistics', {
@@ -65,87 +90,33 @@ class OrderAdmin(admin.ModelAdmin):
                 'shipping_option', 
                 'shipping_address', 
                 'shipping_city', 
-                'shipping_state', 
-                'shipping_country'
+                'shipping_state'
             )
         }),
     )
     
-    inlines = [OrderItemInline]
+    inlines = [OrderItemInline, CouponRedemptionInline]
 
     def get_customer(self, obj):
         if obj.user:
             return obj.user.email
-        return obj.guest_email if obj.guest_email else f"Guest ({obj.session_id[:8] if obj.session_id else 'N/A'})"
-    
+        return obj.guest_email if obj.guest_email else f"Guest ({obj.session_id[:8]})"
     get_customer.short_description = 'Customer'
 
-# 3. CART ITEM ADMIN
+
+# 5. REMAINING ADMINS (Cart, Zone, Option)
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_owner', 'get_item_name', 'quantity', 'get_total_price')
-    list_filter = ('user',)
-    # Added variant attributes to search
-    search_fields = ('user__username', 'product__name', 'variant__attributes__value', 'session_id')
+    list_display = ('id', 'get_owner', 'product', 'quantity', 'total_price')
+    # Use the property total_price from the model
 
-    def get_owner(self, obj):
-        return obj.user.email if obj.user else f"Guest ({obj.session_id[:8]}...)"
-
-    def get_item_name(self, obj):
-        """Shows product name plus the chosen variant (Size/Color)."""
-        name = obj.product.name if obj.product else "Empty Slot"
-        if obj.variant:
-            attrs = ", ".join([f"{a.attribute.name}: {a.value}" for a in obj.variant.attributes.all()])
-            name = f"{name} ({attrs})"
-        
-        if obj.placement:
-            return f"🎨 {name} (Custom Design)"
-        return f"👕 {name} (Plain)"
-    get_item_name.short_description = 'Item Details'
-
-    def get_total_price(self, obj):
-        return f"₦{obj.total_price:,.2f}"
-
-
-# 4. ORDER ITEM ADMIN
-@admin.register(OrderItem)
-class OrderItemAdmin(admin.ModelAdmin):
-    list_display = ('order', 'product_full_info', 'quantity', 'unit_price', 'subtotal', 'reveal_token', 'secret_message')
-    search_fields = ('order__order_number', 'product__name', 'variant__attributes__value', 'reveal_token', 'secret_message')
-
-    def product_full_info(self, obj):
-        """Comprehensive string showing Product, Design, and Variants."""
-        base_name = obj.product.name if obj.product else "No Product"
-        
-        # Add Variant info
-        variant_info = ""
-        if obj.variant:
-            attrs = ", ".join([f"{a.attribute.name}: {a.value}" for a in obj.variant.attributes.all()])
-            variant_info = f" [{attrs}]"
-        
-        # Add Design info
-        design_info = ""
-        if obj.placement and obj.placement.design:
-            design_info = f" / Design: {obj.placement.design.name}"
-            
-        return f"{base_name}{variant_info}{design_info}"
-    
-    product_full_info.short_description = 'Product Details'
-
-
-
-
-
-from django.contrib import admin
-from .models import ShippingZone, ShippingLocation, ShippingOption
-
-class ShippingLocationInline(admin.TabularInline):
-    model = ShippingLocation
-    extra = 3  # Gives you 3 empty rows to quickly type cities
+@admin.register(CouponRedemption)
+class CouponRedemptionAdmin(admin.ModelAdmin):
+    list_display = ('coupon', 'user', 'order', 'redeemed_at')
+    list_filter = ('redeemed_at',)
 
 @admin.register(ShippingZone)
 class ShippingZoneAdmin(admin.ModelAdmin):
-    inlines = [ShippingLocationInline]
     list_display = ('name', 'base_fee')
 
 @admin.register(ShippingOption)

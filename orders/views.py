@@ -7,7 +7,8 @@ from .models import CartItem, Order
 from .serializers import (
     CartItemSerializer, 
     OrderSerializer, 
-    OrderCreateSerializer
+    OrderCreateSerializer,
+    CouponSerializer,
 )
 
 # --- CART VIEWS ---
@@ -78,10 +79,19 @@ class MergeCartView(APIView):
 
 # --- ORDER VIEWS ---
 
+from rest_framework import generics, status
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from .models import Order
+from .serializers import OrderSerializer, OrderCreateSerializer
+
 class OrderListCreateView(generics.ListCreateAPIView):
     def get_permissions(self):
+        # Anyone can create an order (Guests or Users)
         if self.request.method == 'POST':
             return [AllowAny()]
+        # Only logged-in users can list their history
         return [IsAuthenticated()]
 
     def get_serializer_class(self):
@@ -90,36 +100,59 @@ class OrderListCreateView(generics.ListCreateAPIView):
         return OrderSerializer
 
     def get_queryset(self):
-        if self.request.user.is_authenticated:
-            return Order.objects.filter(user=self.request.user).prefetch_related('items')
+        user = self.request.user
+        if user.is_authenticated:
+            return Order.objects.filter(user=user).prefetch_related('items__product', 'items__variant')
         
-        # Optional: Allow guests to see their specific order if they have the session_id
+        # Guest View: If a guest provides their session_id in the URL params
         session_id = self.request.query_params.get('session_id')
         if session_id:
-            return Order.objects.filter(session_id=session_id).prefetch_related('items')
+            return Order.objects.filter(session_id=session_id).prefetch_related('items__product')
             
         return Order.objects.none()
 
-    def perform_create(self, serializer):
-        serializer.save()
+    def create(self, request, *args, **kwargs):
+        # We override create to return the OrderSerializer (detailed) 
+        # instead of the OrderCreateSerializer (input-only)
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        order = serializer.save()
+        
+        # Switch to the detail serializer for the response
+        response_serializer = OrderSerializer(order, context={'request': request})
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
 
 class OrderDetailView(generics.RetrieveAPIView):
     serializer_class = OrderSerializer
     permission_classes = [AllowAny] 
+    lookup_field = 'order_number' # Default to looking up by LRG-XXXX
 
     def get_queryset(self):
-        # We allow lookup by order_number for the success page
-        return Order.objects.all()
+        # Optimizing with prefetch to avoid hitting DB for every item in the order
+        return Order.objects.all().prefetch_related('items__product', 'items__variant')
     
     def get_object(self):
-        # Allow looking up by order_number instead of just ID
-        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        """
+        Custom lookup logic to handle both ID and Order Number.
+        Also adds a security check for guests.
+        """
+        lookup_value = self.kwargs.get(self.lookup_field) or self.kwargs.get('pk')
         
-        # If it's a numeric ID, use id, otherwise use order_number
-        if str(self.kwargs[lookup_url_kwarg]).startswith('LRG-'):
-            return generics.get_object_or_404(Order, order_number=self.kwargs[lookup_url_kwarg])
-        return super().get_object()
+        # 1. Try fetching by Order Number (LRG-...)
+        if str(lookup_value).startswith('LRG-'):
+            order = get_object_or_404(Order, order_number=lookup_value)
+        else:
+            # 2. Try fetching by ID
+            order = get_object_or_404(Order, pk=lookup_value)
+
+        # SECURITY CHECK: 
+        # If order belongs to a user, only that user can see it.
+        # If guest order, anyone with the link can see it (Success Page logic).
+        if order.user and order.user != self.request.user:
+            self.permission_denied(self.request, message="You do not have access to this order.")
+            
+        return order
 
 
 from rest_framework.views import APIView
