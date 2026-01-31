@@ -107,8 +107,21 @@ class OrderAdmin(admin.ModelAdmin):
 # 5. REMAINING ADMINS (Cart, Zone, Option)
 @admin.register(CartItem)
 class CartItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'get_owner', 'product', 'quantity', 'total_price')
-    # Use the property total_price from the model
+    # 'get_owner' must be defined here to be used in list_display
+    list_display = ('id', 'get_owner', 'product', 'quantity', 'get_total_price')
+    list_filter = ('user',)
+    search_fields = ('user__email', 'product__name', 'session_id')
+
+    def get_owner(self, obj):
+        if obj.user:
+            return obj.user.email
+        return f"Guest ({obj.session_id[:8]}...)" if obj.session_id else "Anonymous"
+    get_owner.short_description = 'Owner'
+
+    def get_total_price(self, obj):
+        # Accesses the @property total_price from your model
+        return f"₦{obj.total_price:,.2f}"
+    get_total_price.short_description = 'Total Price'
 
 @admin.register(CouponRedemption)
 class CouponRedemptionAdmin(admin.ModelAdmin):
