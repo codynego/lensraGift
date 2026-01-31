@@ -266,18 +266,16 @@ class Order(models.Model):
 
 
 
+
 class CouponRedemption(models.Model):
     coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
     user = models.ForeignKey(
-        "auth.User",
-        on_delete=models.SET_NULL,
+        settings.AUTH_USER_MODEL, # Change from "auth.User" to this
+        on_delete=models.SET_NULL, 
         null=True, blank=True
     )
     order = models.OneToOneField(Order, on_delete=models.CASCADE)
     redeemed_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.coupon.code} used on order {self.order.id}"
 
 
 class OrderItem(models.Model):
