@@ -1,8 +1,8 @@
 import uuid
 from rest_framework import serializers
 from django.db.models import Sum
-from .models import CartItem, Order, OrderItem
-from products.models import Product, DesignPlacement, ProductVariant, Coupon, CouponRedemption
+from .models import CartItem, Order, OrderItem, Coupon, CouponRedemption
+from products.models import Product, DesignPlacement, ProductVariant
 from products.serializers import ProductSerializer, DesignPlacementSerializer, ProductVariantSerializer
 
 class CartSummarySerializer(serializers.Serializer):
