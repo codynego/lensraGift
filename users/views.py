@@ -156,3 +156,39 @@ class EmailSubscribeView(generics.CreateAPIView):
     def perform_create(self, serializer):
         # You could trigger a 'Welcome Email' here via a background task
         serializer.save()
+
+
+
+
+from rest_framework.response import Response
+from rest_framework import status
+from lensra.core.tasks import send_welcome_email
+from lensra.utils.coupons import generate_coupon_for_email
+
+class EmailSubscribeView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = EmailSubscriberSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data['email']
+        source = serializer.validated_data.get('source', 'popup')
+
+        subscriber, created = EmailSubscriber.objects.get_or_create(
+            email=email,
+            defaults={"source": source}
+        )
+
+        if not created and not subscriber.is_active:
+            subscriber.is_active = True
+            subscriber.save()
+
+        coupon_code = generate_coupon_for_email(email)
+
+        send_welcome_email.delay(email, coupon_code)
+
+        return Response(
+            {"message": "Welcome to Lensra ✨ Check your email."},
+            status=status.HTTP_201_CREATED
+        )

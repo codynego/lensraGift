@@ -101,8 +101,13 @@ class EmailSubscriberSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'subscribed_at', 'is_active']
 
     def validate_email(self, value):
-        # Normalizing email to lowercase for consistency
         email = value.lower()
-        if EmailSubscriber.objects.filter(email=email).exists():
-            raise serializers.ValidationError("You are already part of the Lensra inner circle! ✨")
+
+        existing = EmailSubscriber.objects.filter(email=email).first()
+
+        if existing and existing.is_active:
+            raise serializers.ValidationError(
+                "You’re already on the Lensra list 😄"
+            )
+
         return email
