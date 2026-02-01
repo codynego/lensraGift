@@ -5,7 +5,7 @@ from django.conf import settings
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
 def send_reseller_application_email(self, reseller_id):
-    from resellers.models import ResellerProfile
+    from reseller.models import ResellerProfile
 
     try:
         reseller = ResellerProfile.objects.get(id=reseller_id)
