@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import ResellerProfile, WalletTransaction
-from core.tasks.reseller import send_reseller_application_email
+from lensra.core.tasks.reseller import send_reseller_application_email
 
 class WalletTransactionSerializer(serializers.ModelSerializer):
     class Meta:

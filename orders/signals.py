@@ -7,7 +7,7 @@ from .models import Order
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from orders.models import Order
-from core.tasks.orders import send_order_confirmation_email, send_order_recieved_email
+from lensra.core.tasks.orders import send_order_confirmation_email, send_order_recieved_email
 
 @receiver(post_save, sender=Order)
 def order_created(sender, instance, created, **kwargs):

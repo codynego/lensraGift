@@ -1,6 +1,6 @@
 # core/tasks.py
 from celery import shared_task
-from core.tasks.sendgrid import send_template_email
+from lensra.core.tasks.sendgrid import send_template_email
 from django.conf import settings
 
 @shared_task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
