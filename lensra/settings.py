@@ -275,3 +275,11 @@ CKEDITOR_5_CONFIGS = {
         'width': '100%',
     }
 }
+
+CELERY_BROKER_URL = os.getenv("UPSTASH_REDIS_URL")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+
+INSTALLED_APPS += ["django_celery_results"]
+
+CELERY_RESULT_BACKEND = "django-db"

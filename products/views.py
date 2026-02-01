@@ -75,13 +75,6 @@ class DesignPlacementCreateView(generics.CreateAPIView):
     def perform_create(self, serializer):
         serializer.save()
 
-class FeaturedProductsView(generics.ListAPIView):
-    """Returns featured products with variant data for homepage highlights."""
-    queryset = Product.objects.filter(is_active=True, is_featured=True)\
-        .prefetch_related('categories', 'variants__attributes__attribute')
-        
-    serializer_class = ProductListSerializer
-    permission_classes = [AllowAny]
 
 
 
@@ -133,3 +126,25 @@ class GiftRecommendationsView(APIView):
         serializer = ProductSerializer(results, many=True)
         
         return Response({"results": serializer.data}, status=status.HTTP_200_OK)
+
+
+
+from django.db.models import Q
+
+
+class FeaturedProductsView(generics.ListAPIView):
+    """Returns trending or featured products with variant data for homepage highlights."""
+    queryset = Product.objects.filter(is_active=True).filter(Q(is_featured=True) | Q(is_trending=True))\
+        .exclude(is_customizable=True)\
+        .prefetch_related('categories', 'variants__attributes__attribute')
+
+    serializer_class = ProductListSerializer
+    permission_classes = [AllowAny]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ProductFilter 
+    search_fields = ['name']
+    ordering_fields = ['base_price']
+    
+    def get_queryset(self):
+        return super().get_queryset().order_by('?')
+
