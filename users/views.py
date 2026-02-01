@@ -162,7 +162,7 @@ class EmailSubscribeView(generics.CreateAPIView):
 
 from rest_framework.response import Response
 from rest_framework import status
-from lensra.core.tasks import send_welcome_email
+from lensra.core.tasks.sendgrid import send_welcome_email
 from lensra.utils.coupons import generate_coupon_for_email
 
 class EmailSubscribeView(APIView):
