@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import ResellerProfile, WalletTransaction
+from core.tasks.reseller import send_reseller_application_email
 
 class WalletTransactionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -12,9 +13,13 @@ class ResellerApplicationSerializer(serializers.ModelSerializer):
         fields = ['whatsapp_number', 'marketing_plan', 'business_name']
 
     def create(self, validated_data):
-        # The user is injected from the view context
         user = self.context['request'].user
-        return ResellerProfile.objects.create(user=user, **validated_data)
+        reseller = ResellerProfile.objects.create(user=user, **validated_data)
+
+        # Trigger async email
+        send_reseller_application_email.delay(reseller.id)
+
+        return reseller
 
 class ResellerDashboardSerializer(serializers.ModelSerializer):
     # This nesting allows the frontend to get profile + transactions in one call
