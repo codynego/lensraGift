@@ -287,7 +287,7 @@ CELERY_RESULT_BACKEND = "django-db"
 REDIS_PASSWORD = config('REDIS_PASSWORD', default='STRONG_PASSWORD_HERE')
 SENDGRID_WELCOME_TEMPLATE_ID = config('SENDGRID_WELCOME_TEMPLATE_ID', default='')
 SENDGRID_API_KEY=config('SENDGRID_API_KEY', default='')
-FROM_EMAIL="Lensra. <noreply@lensra.com>"
+FROM_EMAIL="Lensragift <noreply@lensra.com>"
 
 
 CACHES = {
