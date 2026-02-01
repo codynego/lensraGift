@@ -16,7 +16,7 @@ def send_template_email(to_email: str, template_id: str, dynamic_data: dict):
         dynamic_data (dict): Dict of template variables
     """
     message = Mail(
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=settings.FROM_EMAIL,
         to_emails=To(to_email),
     )
     message.template_id = template_id
@@ -25,10 +25,8 @@ def send_template_email(to_email: str, template_id: str, dynamic_data: dict):
     try:
         sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
         response = sg.send(message)
-        # Optional logging
         print(f"Email sent to {to_email} | Status: {response.status_code}")
     except Exception as e:
-        # Optional: log the error somewhere
         print(f"SendGrid error sending to {to_email}: {e}")
         raise e
 
