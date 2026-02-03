@@ -94,12 +94,6 @@ from django.contrib import admin
 from django.utils.text import slugify
 
 
-from django.contrib import admin
-from django.utils.text import slugify
-from .models import Product, Tag
-from .admin_forms import ProductAdminForm
-
-
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
