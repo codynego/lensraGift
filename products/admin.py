@@ -14,23 +14,16 @@ from .models import Product, Tag
 
 
 class ProductAdminForm(forms.ModelForm):
-    tags = forms.CharField(
+    tags_input = forms.CharField(
         required=False,
+        label="Tags",
         help_text="Enter tags separated by commas (e.g. birthday, for-her, trending)"
     )
 
     class Meta:
         model = Product
-        exclude = ('tags',)  # hide the default ManyToMany widget
+        exclude = ('tags',)  # hide the default ManyToMany field
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        # Pre-fill existing tags when editing
-        if self.instance.pk:
-            self.fields['tags'].initial = ", ".join(
-                self.instance.tags.values_list('name', flat=True)
-            )
 
 
 @admin.register(Tag)
@@ -138,7 +131,7 @@ class ProductAdmin(admin.ModelAdmin):
                 'name',
                 'slug',
                 'categories',
-                'tags_input',  # ✅ comma-separated field
+                'tags_input',  # ✅ form-only field
                 'image',
                 'base_price',
                 'description',
