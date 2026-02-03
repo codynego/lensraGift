@@ -200,3 +200,53 @@ class FeaturedProductsView(generics.ListAPIView):
         )
 
 
+from django.shortcuts import get_object_or_404
+from django.db.models import Count
+
+class RelatedProductsView(generics.ListAPIView):
+    """
+    Returns products related to the current product
+    based on shared tags (primary signal).
+    """
+
+    serializer_class = ProductListSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        product = get_object_or_404(
+            Product.objects.prefetch_related('tags', 'categories'),
+            slug=self.kwargs['slug'],
+            is_active=True
+        )
+
+        product_tags = product.tags.all()
+
+        # 1️⃣ Primary: products sharing the most tags
+        related = (
+            Product.objects
+            .filter(is_active=True)
+            .exclude(id=product.id)
+            .filter(tags__in=product_tags)
+            .annotate(shared_tags=Count('tags'))
+            .order_by('-shared_tags', '?')
+            .prefetch_related(
+                'categories',
+                'tags',
+                'variants__attributes__attribute'
+            )
+        )
+
+        # 2️⃣ Fallback: same category if tags are weak
+        if not related.exists():
+            related = (
+                Product.objects
+                .filter(
+                    is_active=True,
+                    categories__in=product.categories.all()
+                )
+                .exclude(id=product.id)
+                .distinct()
+                .order_by('?')
+            )
+
+        return related[:8]  # perfect number for UI
