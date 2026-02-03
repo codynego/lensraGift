@@ -99,29 +99,82 @@ class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
 
     list_display = (
-        'name', 'base_price', 'is_active', 'is_featured', 'is_trending'
+        'name',
+        'get_categories',
+        'get_tags',
+        'base_price',
+        'is_customizable',
+        'is_featured',
+        'is_trending',
+        'is_active',
     )
 
-    search_fields = ('name',)
+    list_filter = (
+        'is_customizable',
+        'is_featured',
+        'is_trending',
+        'is_active',
+        'categories',
+    )
+
+    search_fields = (
+        'name',
+        'description',
+        'categories__name',
+        'tags__name',
+    )
+
     prepopulated_fields = {'slug': ('name',)}
+
+    inlines = [
+        ProductImageInline,
+        ProductVariantInline,
+        PrintableAreaInline,
+    ]
 
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'slug', 'categories', 'tags', 'image', 'base_price', 'description')
+            'fields': (
+                'name',
+                'slug',
+                'categories',
+                'tags_input',  # ✅ comma-separated field
+                'image',
+                'base_price',
+                'description',
+            )
         }),
-        ('Inventory Settings', {
-            'fields': ('min_order_quantity', 'is_customizable')
+        ('Inventory & Customization', {
+            'fields': (
+                'min_order_quantity',
+                'is_customizable',
+            )
         }),
         ('Status & Visibility', {
-            'fields': (('is_active', 'is_featured', 'is_trending'),)
+            'fields': (
+                'is_active',
+                'is_featured',
+                'is_trending',
+            )
         }),
     )
 
+    # 🔹 Show categories with hierarchy
+    def get_categories(self, obj):
+        return ", ".join([cat.get_full_path() for cat in obj.categories.all()])
+    get_categories.short_description = "Categories"
+
+    # 🔹 Show tags in list view
+    def get_tags(self, obj):
+        return ", ".join(obj.tags.values_list('name', flat=True))
+    get_tags.short_description = "Tags"
+
+    # 🔥 AUTO-CREATE TAGS ON SAVE
     def save_model(self, request, obj, form, change):
-        # Save product first (important)
         super().save_model(request, obj, form, change)
 
-        raw_tags = form.cleaned_data.get('tags', '')
+        raw_tags = form.cleaned_data.get('tags_input', '')
+
         if not raw_tags:
             obj.tags.clear()
             return
@@ -144,6 +197,13 @@ class ProductAdmin(admin.ModelAdmin):
             tag_objects.append(tag)
 
         obj.tags.set(tag_objects)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related(
+            'categories',
+            'tags',
+        )
+
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
