@@ -216,7 +216,8 @@ class RelatedProductsView(generics.ListAPIView):
         product = get_object_or_404(
             Product.objects.prefetch_related('tags', 'categories'),
             slug=self.kwargs['slug'],
-            is_active=True
+            is_active=True,
+            is_customizable=False,
         )
 
         product_tags = product.tags.all()
