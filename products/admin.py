@@ -5,7 +5,57 @@ from .models import (
     DesignPlacement, Attribute, AttributeValue, ProductVariant, Tag
 )
 
-# --- INLINES ---
+
+# admin.py
+from django import forms
+from django.utils.text import slugify
+from .models import Product, Tag
+
+
+class ProductAdminForm(forms.ModelForm):
+    tag_input = forms.CharField(
+        required=False,
+        help_text="Enter tags separated by commas (e.g. birthday, romantic, for her)"
+    )
+
+    class Meta:
+        model = Product
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Populate tag_input when editing
+        if self.instance.pk:
+            self.fields["tag_input"].initial = ", ".join(
+                self.instance.tags.values_list("name", flat=True)
+            )
+
+    def save(self, commit=True):
+        product = super().save(commit=False)
+
+        if commit:
+            product.save()
+
+        # Clear existing tags
+        product.tags.clear()
+
+        tag_string = self.cleaned_data.get("tag_input", "")
+        tag_names = [
+            t.strip().lower()
+            for t in tag_string.split(",")
+            if t.strip()
+        ]
+
+        for name in tag_names:
+            tag, _ = Tag.objects.get_or_create(
+                name=name,
+                defaults={"slug": slugify(name)}
+            )
+            product.tags.add(tag)
+
+        return product
+
 
 
 @admin.register(Tag)
@@ -67,26 +117,31 @@ class AttributeAdmin(admin.ModelAdmin):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    # 1. Updated 'get_categories' to show hierarchical paths
+    form = ProductAdminForm
+
     list_display = (
-        'name', 'get_categories', 'get_tags', 'base_price', 
+        'name', 'get_categories', 'get_tags', 'base_price',
         'min_order_quantity', 'is_active', 'is_featured', 'is_trending'
     )
-    
-    # 2. Added 'tags' to filters so you can quickly find 'Valentine' or 'For Her' gifts
+
     list_filter = ('categories', 'tags', 'is_active', 'is_featured', 'is_trending')
-    
     search_fields = ('name', 'categories__name', 'tags__name')
+
     prepopulated_fields = {'slug': ('name',)}
-    
-    # 3. THIS IS KEY: Makes the tag selection a nice side-by-side search box
-    filter_horizontal = ('categories', 'tags')
-    
+
     inlines = [ProductImageInline, ProductVariantInline, PrintableAreaInline]
-    
+
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'slug', ('categories', 'tags'), 'image', 'base_price', 'description')
+            'fields': (
+                'name',
+                'slug',
+                'categories',
+                'tag_input',   # 👈 replaces direct tag selection
+                'image',
+                'base_price',
+                'description'
+            )
         }),
         ('Inventory Settings', {
             'fields': ('min_order_quantity', 'is_customizable')
@@ -96,20 +151,21 @@ class ProductAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Updated helper to show Categories with paths in the list view
     def get_categories(self, obj):
-        return ", ".join([cat.get_full_path() for cat in obj.categories.all()])  # Assumes get_full_path added to Category model
+        return ", ".join(
+            [cat.get_full_path() for cat in obj.categories.all()]
+        )
     get_categories.short_description = 'Categories'
 
-    # 4. NEW: Helper to show Tags in the list view
     def get_tags(self, obj):
         return ", ".join([t.name for t in obj.tags.all()])
     get_tags.short_description = 'Gift Finder Tags'
 
     def get_queryset(self, request):
-        # This tells Django to "pre-fetch" the tags and categories in 
-        # a single efficient query instead of one by one.
-        return super().get_queryset(request).prefetch_related('categories', 'tags')
+        return super().get_queryset(request).prefetch_related(
+            'categories', 'tags'
+        )
+
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):

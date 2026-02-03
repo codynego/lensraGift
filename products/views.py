@@ -15,20 +15,54 @@ import django_filters
 
 
 
+import django_filters
+from .models import Product, Tag
+
+
 class ProductFilter(django_filters.FilterSet):
-    min_price = django_filters.NumberFilter(field_name="base_price", lookup_expr='gte')
-    max_price = django_filters.NumberFilter(field_name="base_price", lookup_expr='lte')
-    category = django_filters.CharFilter(field_name="categories__slug", lookup_expr='exact')
+    min_price = django_filters.NumberFilter(
+        field_name="base_price",
+        lookup_expr='gte'
+    )
+    max_price = django_filters.NumberFilter(
+        field_name="base_price",
+        lookup_expr='lte'
+    )
+
+    category = django_filters.CharFilter(
+        field_name="categories__slug",
+        lookup_expr='exact'
+    )
+
+    tag = django_filters.ModelMultipleChoiceFilter(
+        field_name="tags__slug",   # change to tags__id if you prefer
+        to_field_name="slug",
+        queryset=Tag.objects.all()
+    )
 
     class Meta:
         model = Product
-        fields = ['is_customizable', 'is_featured', 'is_trending']
+        fields = [
+            'is_customizable',
+            'is_featured',
+            'is_trending',
+            'category',
+            'tag',
+        ]
+
 
 class CategoryListView(generics.ListAPIView):
     """Returns list of categories for navigation/filtering."""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+
+class CategoryDetailView(generics.RetrieveAPIView):
+    """Returns detailed info for a specific category."""
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
 
 class TagListView(generics.ListAPIView):
     """Returns list of tags for filtering."""
@@ -132,19 +166,37 @@ class GiftRecommendationsView(APIView):
 from django.db.models import Q
 
 
+
 class FeaturedProductsView(generics.ListAPIView):
-    """Returns trending or featured products with variant data for homepage highlights."""
-    queryset = Product.objects.filter(is_active=True).filter(Q(is_featured=True) | Q(is_trending=True))\
-        .exclude(is_customizable=True)\
-        .prefetch_related('categories', 'variants__attributes__attribute')
+    """
+    Returns featured or trending non-customizable products.
+    Supports filtering by tags, category, price, etc.
+    """
 
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_class = ProductFilter 
+
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    filterset_class = ProductFilter
     search_fields = ['name']
     ordering_fields = ['base_price']
-    
+
     def get_queryset(self):
-        return super().get_queryset().order_by('?')
+        return (
+            Product.objects
+            .filter(is_active=True)
+            .filter(Q(is_featured=True) | Q(is_trending=True))
+            .exclude(is_customizable=True)
+            .prefetch_related(
+                'categories',
+                'tags',  # ✅ IMPORTANT: prefetch tags
+                'variants__attributes__attribute'
+            )
+            .order_by('?')  # randomize for homepage freshness
+        )
+
 
