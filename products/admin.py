@@ -12,27 +12,25 @@ from django.utils.text import slugify
 from .models import Product, Tag
 
 
-from django import forms
-
 
 class ProductAdminForm(forms.ModelForm):
-    tags_input = forms.CharField(
+    tags = forms.CharField(
         required=False,
-        help_text="Enter tags separated by commas"
+        help_text="Enter tags separated by commas (e.g. birthday, for-her, trending)"
     )
 
     class Meta:
         model = Product
-        fields = '__all__'
+        exclude = ('tags',)  # hide the default ManyToMany widget
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Pre-fill existing tags when editing
         if self.instance.pk:
-            self.fields['tags_input'].initial = ", ".join(
+            self.fields['tags'].initial = ", ".join(
                 self.instance.tags.values_list('name', flat=True)
             )
-
 
 
 @admin.register(Tag)
@@ -96,15 +94,42 @@ from django.contrib import admin
 from django.utils.text import slugify
 
 
+from django.contrib import admin
+from django.utils.text import slugify
+from .models import Product, Tag
+from .admin_forms import ProductAdminForm
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
 
+    list_display = (
+        'name', 'base_price', 'is_active', 'is_featured', 'is_trending'
+    )
+
+    search_fields = ('name',)
+    prepopulated_fields = {'slug': ('name',)}
+
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'categories', 'tags', 'image', 'base_price', 'description')
+        }),
+        ('Inventory Settings', {
+            'fields': ('min_order_quantity', 'is_customizable')
+        }),
+        ('Status & Visibility', {
+            'fields': (('is_active', 'is_featured', 'is_trending'),)
+        }),
+    )
+
     def save_model(self, request, obj, form, change):
+        # Save product first (important)
         super().save_model(request, obj, form, change)
 
-        raw_tags = request.POST.get('tags_input')  # custom field
+        raw_tags = form.cleaned_data.get('tags', '')
         if not raw_tags:
+            obj.tags.clear()
             return
 
         tag_names = {
@@ -125,7 +150,6 @@ class ProductAdmin(admin.ModelAdmin):
             tag_objects.append(tag)
 
         obj.tags.set(tag_objects)
-
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
