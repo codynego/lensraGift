@@ -12,49 +12,26 @@ from django.utils.text import slugify
 from .models import Product, Tag
 
 
+from django import forms
+
+
 class ProductAdminForm(forms.ModelForm):
-    tag_input = forms.CharField(
+    tags_input = forms.CharField(
         required=False,
-        help_text="Enter tags separated by commas (e.g. birthday, romantic, for her)"
+        help_text="Enter tags separated by commas"
     )
 
     class Meta:
         model = Product
-        fields = "__all__"
+        fields = '__all__'
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Populate tag_input when editing
         if self.instance.pk:
-            self.fields["tag_input"].initial = ", ".join(
-                self.instance.tags.values_list("name", flat=True)
+            self.fields['tags_input'].initial = ", ".join(
+                self.instance.tags.values_list('name', flat=True)
             )
-
-    def save(self, commit=True):
-        product = super().save(commit=False)
-
-        if commit:
-            product.save()
-
-        # Clear existing tags
-        product.tags.clear()
-
-        tag_string = self.cleaned_data.get("tag_input", "")
-        tag_names = [
-            t.strip().lower()
-            for t in tag_string.split(",")
-            if t.strip()
-        ]
-
-        for name in tag_names:
-            tag, _ = Tag.objects.get_or_create(
-                name=name,
-                defaults={"slug": slugify(name)}
-            )
-            product.tags.add(tag)
-
-        return product
 
 
 
@@ -115,56 +92,39 @@ class AttributeAdmin(admin.ModelAdmin):
     list_display = ('name',)
     inlines = [AttributeValueInline]
 
+from django.contrib import admin
+from django.utils.text import slugify
+
+
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
 
-    list_display = (
-        'name', 'get_categories', 'get_tags', 'base_price',
-        'min_order_quantity', 'is_active', 'is_featured', 'is_trending'
-    )
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
 
-    list_filter = ('categories', 'tags', 'is_active', 'is_featured', 'is_trending')
-    search_fields = ('name', 'categories__name', 'tags__name')
+        raw_tags = request.POST.get('tags_input')  # custom field
+        if not raw_tags:
+            return
 
-    prepopulated_fields = {'slug': ('name',)}
+        tag_names = {
+            tag.strip().lower()
+            for tag in raw_tags.split(',')
+            if tag.strip()
+        }
 
-    inlines = [ProductImageInline, ProductVariantInline, PrintableAreaInline]
+        tag_objects = []
 
-    fieldsets = (
-        ('Basic Information', {
-            'fields': (
-                'name',
-                'slug',
-                'categories',
-                'tag_input',   # 👈 replaces direct tag selection
-                'image',
-                'base_price',
-                'description'
+        for name in tag_names:
+            slug = slugify(name)
+
+            tag, _ = Tag.objects.get_or_create(
+                slug=slug,
+                defaults={'name': name}
             )
-        }),
-        ('Inventory Settings', {
-            'fields': ('min_order_quantity', 'is_customizable')
-        }),
-        ('Status & Visibility', {
-            'fields': (('is_active', 'is_featured', 'is_trending'),)
-        }),
-    )
+            tag_objects.append(tag)
 
-    def get_categories(self, obj):
-        return ", ".join(
-            [cat.get_full_path() for cat in obj.categories.all()]
-        )
-    get_categories.short_description = 'Categories'
-
-    def get_tags(self, obj):
-        return ", ".join([t.name for t in obj.tags.all()])
-    get_tags.short_description = 'Gift Finder Tags'
-
-    def get_queryset(self, request):
-        return super().get_queryset(request).prefetch_related(
-            'categories', 'tags'
-        )
+        obj.tags.set(tag_objects)
 
 
 @admin.register(ProductVariant)
