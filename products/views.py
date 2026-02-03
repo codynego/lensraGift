@@ -226,6 +226,7 @@ class RelatedProductsView(generics.ListAPIView):
         related = (
             Product.objects
             .filter(is_active=True)
+            .filter(is_customizable=False)
             .exclude(id=product.id)
             .filter(tags__in=product_tags)
             .annotate(shared_tags=Count('tags'))
