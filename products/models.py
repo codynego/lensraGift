@@ -3,7 +3,6 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from designs.models import Design
 from cloudinary.models import CloudinaryField
-from django.utils import timezone
 
 
 class Tag(models.Model):
@@ -61,8 +60,8 @@ class Product(models.Model):
     is_featured = models.BooleanField(default=False)
     is_trending = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
-    created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self): 
         return self.name
@@ -77,8 +76,8 @@ class ProductImage(models.Model):
         "product_gallery_image"
     )
     alt_text = models.CharField(max_length=255, blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True, default=timezone.now)
-    updated_at = models.DateTimeField(auto_now=True, default=timezone.now)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return f"Image for {self.product.name}"
 
