@@ -171,30 +171,25 @@ class ProductAdmin(admin.ModelAdmin):
     def save_model(self, request, obj, form, change):
         super().save_model(request, obj, form, change)
 
-        raw_tags = form.cleaned_data.get('tags_input', '')
+        raw_tags = form.cleaned_data.get('tags_input', None)
 
-        if not raw_tags:
-            obj.tags.clear()
+        if raw_tags is None:
+            # User didn't touch the tags_input field, leave tags as is
             return
 
-        tag_names = {
-            tag.strip().lower()
-            for tag in raw_tags.split(',')
-            if tag.strip()
-        }
+        # Process tags only if the field is not empty
+        tag_names = {tag.strip().lower() for tag in raw_tags.split(',') if tag.strip()}
 
-        tag_objects = []
-
-        for name in tag_names:
-            slug = slugify(name)
-
-            tag, _ = Tag.objects.get_or_create(
-                slug=slug,
-                defaults={'name': name}
-            )
-            tag_objects.append(tag)
-
-        obj.tags.set(tag_objects)
+        if tag_names:
+            tag_objects = []
+            for name in tag_names:
+                slug = slugify(name)
+                tag, _ = Tag.objects.get_or_create(slug=slug, defaults={'name': name})
+                tag_objects.append(tag)
+            obj.tags.set(tag_objects)
+        else:
+            # If user cleared the field, remove all tags
+            obj.tags.clear()
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related(
