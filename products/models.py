@@ -55,6 +55,11 @@ class Product(models.Model):
     min_order_quantity = models.PositiveIntegerField(default=1, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     message = models.TextField(blank=True, null=True)
+    product_design = CloudinaryField(
+        "product_design_image",
+        blank=True,
+        null=True
+    )
     tags = models.ManyToManyField(Tag, related_name="products", blank=True, default=None)
     is_customizable = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
