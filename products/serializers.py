@@ -108,9 +108,9 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'base_price', 'image', 'image_url', 'gallery',
             'min_order_quantity', 'description', 'is_customizable', 
             'printable_areas', 'variants', 'tags',
-            'is_featured', 'is_trending', 'is_active', 'categories', 'category_path'
+            'is_featured', 'is_trending', 'is_active', 'categories', 'category_path', 'message',
         ]
-        read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable', 'tags']
+        read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable', 'tags', 'message']
 
     def get_image_url(self, obj):
         if obj.image:

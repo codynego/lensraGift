@@ -135,6 +135,7 @@ class ProductAdmin(admin.ModelAdmin):
                 'image',
                 'base_price',
                 'description',
+                'message',
             )
         }),
         ('Inventory & Customization', {

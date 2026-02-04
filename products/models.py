@@ -54,11 +54,14 @@ class Product(models.Model):
     )
     min_order_quantity = models.PositiveIntegerField(default=1, blank=True, null=True)
     description = models.TextField(blank=True, null=True)
+    message = models.TextField(blank=True, null=True)
     tags = models.ManyToManyField(Tag, related_name="products", blank=True, default=None)
     is_customizable = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     is_trending = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self): 
         return self.name
@@ -74,7 +77,7 @@ class ProductImage(models.Model):
     )
     alt_text = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    updated_at = models.DateTimeField(auto_now=True)
     def __str__(self):
         return f"Image for {self.product.name}"
 
