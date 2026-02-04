@@ -10,11 +10,7 @@ from .serializers import (
     TagSerializer,
 )
 import django_filters
-
-
-
-
-
+from django.db import models
 import django_filters
 from .models import Product, Tag
 
