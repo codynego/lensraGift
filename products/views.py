@@ -70,6 +70,7 @@ class TagListView(generics.ListAPIView):
     serializer_class = TagSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+
 class ProductListView(generics.ListAPIView):
     queryset = Product.objects.filter(is_active=True)\
         .prefetch_related('categories', 'variants__attributes__attribute', 'printable_areas')
@@ -79,8 +80,16 @@ class ProductListView(generics.ListAPIView):
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = ProductFilter 
     search_fields = ['name']
-    ordering_fields = ['base_price']
     
+    # Allow sorting by base_price AND view_count
+    ordering_fields = ['base_price', 'view_count']
+    
+    # Optional: default ordering
+    ordering = ['-view_count']  # most viewed first
+
+    
+
+from rest_framework.response import Response
 
 class ProductDetailView(generics.RetrieveAPIView):
     """Detailed view for the editor: Loads product, print zones, and all variants."""
@@ -91,6 +100,18 @@ class ProductDetailView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'slug'
 
+    def get(self, request, *args, **kwargs):
+        # Retrieve the object
+        product = self.get_object()
+
+        # Increment view_count safely
+        Product.objects.filter(pk=product.pk).update(view_count=models.F('view_count') + 1)
+
+        # Serialize and return
+        serializer = self.get_serializer(product)
+        return Response(serializer.data)
+
+
 class ProductDetail(generics.RetrieveAPIView):
     """Detailed view for the editor: Loads product, print zones, and all variants."""
     queryset = Product.objects.filter(is_active=True)\
@@ -99,6 +120,13 @@ class ProductDetail(generics.RetrieveAPIView):
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
     lookup_field = 'id'
+
+    def get(self, request, *args, **kwargs):
+        product = self.get_object()
+        Product.objects.filter(pk=product.pk).update(view_count=models.F('view_count') + 1)
+        serializer = self.get_serializer(product)
+        return Response(serializer.data)
+
 
 class DesignPlacementCreateView(generics.CreateAPIView):
     """Saves a specific layout (JSON) onto a product area."""

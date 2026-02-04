@@ -64,6 +64,7 @@ class Product(models.Model):
     is_customizable = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
     is_trending = models.BooleanField(default=False)
+    view_count = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

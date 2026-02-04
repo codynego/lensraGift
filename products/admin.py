@@ -94,12 +94,14 @@ class ProductAdmin(admin.ModelAdmin):
     list_display = (
         'name',
         'get_categories',
+        'view_count',
         'get_tags',
         'base_price',
         'is_customizable',
         'is_featured',
         'is_trending',
         'is_active',
+
     )
 
     list_filter = (
@@ -137,6 +139,7 @@ class ProductAdmin(admin.ModelAdmin):
                 'description',
                 'message',
                 'product_design',
+                'view_count',
             )
         }),
         ('Inventory & Customization', {
