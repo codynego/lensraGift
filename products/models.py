@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.validators import MinValueValidator
 from designs.models import Design
 from cloudinary.models import CloudinaryField
+from django.utils import timezone
 
 
 class Tag(models.Model):
