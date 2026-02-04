@@ -152,7 +152,7 @@ class ProductListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'slug', 'base_price', 'image', 'image_url', 
             'min_order_quantity', 'is_featured', 'is_customizable', 
-            'is_trending', 'variants', 'categories', 'category_path', 'tags'
+            'is_trending', 'variants', 'categories', 'category_path', 'tags', 'message',
         ]
 
     def get_image_url(self, obj):
