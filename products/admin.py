@@ -24,6 +24,15 @@ class ProductAdminForm(forms.ModelForm):
         model = Product
         exclude = ('tags',)  # hide the default ManyToMany field
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        if self.instance and self.instance.pk:
+            # Prefill the tags_input field with existing tags
+            existing_tags = self.instance.tags.values_list('name', flat=True)
+            self.fields['tags_input'].initial = ', '.join(existing_tags)
+
+
 
 
 @admin.register(Tag)
