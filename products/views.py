@@ -218,7 +218,6 @@ class FeaturedProductsView(generics.ListAPIView):
             Product.objects
             .filter(is_active=True)
             .filter(Q(is_featured=True) | Q(is_trending=True))
-            .exclude(is_customizable=True)
             .prefetch_related(
                 'categories',
                 'tags',  # ✅ IMPORTANT: prefetch tags
@@ -254,7 +253,6 @@ class RelatedProductsView(generics.ListAPIView):
         related = (
             Product.objects
             .filter(is_active=True)
-            .filter(is_customizable=False)
             .exclude(id=product.id)
             .filter(tags__in=product_tags)
             .annotate(shared_tags=Count('tags'))
