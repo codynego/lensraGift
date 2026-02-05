@@ -19,13 +19,13 @@ class LeadDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Lead.objects.all()
     serializer_class = LeadSerializer
     lookup_field = 'id'
-    permission_classes = [AllowAny]  # Allow anyone to view/update their gift preview
+
 
 # INVITE LINK VIEWS
 class InviteLinkListCreateView(generics.ListCreateAPIView):
     queryset = InviteLink.objects.all()
     serializer_class = InviteLinkSerializer
-    permission_classes = [AllowAny]  # Allow anyone to view/update their gift preview
+
 
 # GIFT PREVIEW VIEWS
 class GiftPreviewDetailView(generics.RetrieveUpdateAPIView):
@@ -34,5 +34,4 @@ class GiftPreviewDetailView(generics.RetrieveUpdateAPIView):
     """
     queryset = GiftPreview.objects.all()
     serializer_class = GiftPreviewSerializer
-    permission_classes = [AllowAny]  # Allow anyone to view/update their gift preview
     lookup_field = 'lead__id' # Allows looking up by the Lead's UUID
