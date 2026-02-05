@@ -11,4 +11,5 @@ urlpatterns = [
 
     # Gift Preview Endpoints
     path('previews/<uuid:lead__id>/', views.GiftPreviewDetailView.as_view(), name='preview-detail'),
+    path('recommend/', views.RandomProductRecommendationAPIView.as_view(), name='product-recommendations'),
 ]
