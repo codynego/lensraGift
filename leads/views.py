@@ -42,12 +42,12 @@ import random
 from rest_framework.generics import GenericAPIView
 from rest_framework.response import Response
 from products.models import Product
-from products.serializers import ProductRecommendationSerializer
+from products.serializers import ProductSerializer
 from django.db import models
 
 
 class RandomProductRecommendationAPIView(GenericAPIView):
-    serializer_class = ProductRecommendationSerializer
+    serializer_class = ProductSerializer
     permission_classes = [AllowAny]
 
     def get_queryset(self):
