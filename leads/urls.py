@@ -3,7 +3,7 @@ from . import views
 
 urlpatterns = [
     # Lead Endpoints
-    path('/', views.LeadListCreateView.as_view(), name='lead-list-create'),
+    path('', views.LeadListCreateView.as_view(), name='lead-list-create'),
     path('<uuid:id>/', views.LeadDetailView.as_view(), name='lead-detail'),
 
     # Referral Endpoints
