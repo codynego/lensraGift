@@ -32,6 +32,7 @@ urlpatterns = [
     path('api/digital-gifts/', include('digitalgifts.urls')),
     path('ckeditor5/', include('django_ckeditor_5.urls')),
     path('api/blog/', include('blog.urls')),
+    path('api/leads/', include('leads.urls')),
 ]
 
 if settings.DEBUG:

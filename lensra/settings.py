@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     'digitalgifts',
     'blog',
     'django_ckeditor_5',
+    'leads',
 ]
 
 MIDDLEWARE = [
