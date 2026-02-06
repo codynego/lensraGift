@@ -25,7 +25,7 @@ class LeadDetailView(generics.RetrieveUpdateDestroyAPIView):
 class InviteLinkListCreateView(generics.ListCreateAPIView):
     queryset = InviteLink.objects.all()
     serializer_class = InviteLinkSerializer
-
+    permission_classes = [AllowAny] 
 
 # GIFT PREVIEW VIEWS
 class GiftPreviewDetailView(generics.RetrieveUpdateAPIView):
