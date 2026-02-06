@@ -2,10 +2,23 @@ from rest_framework import serializers
 from .models import Lead, InviteLink, GiftPreview, WhatsAppLog
 
 class InviteLinkSerializer(serializers.ModelSerializer):
+    code = serializers.CharField(required=False)
+
     class Meta:
         model = InviteLink
         fields = ['code', 'owner', 'clicks', 'created_at']
         read_only_fields = ['clicks', 'created_at']
+
+    def create(self, validated_data):
+        if 'code' not in validated_data or not validated_data['code']:
+            validated_data['code'] = self.generate_unique_code()
+        return super().create(validated_data)
+
+    def generate_unique_code(self):
+        while True:
+            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+            if not InviteLink.objects.filter(code=code).exists():
+                return code
 
 
 class GiftPreviewSerializer(serializers.ModelSerializer):
