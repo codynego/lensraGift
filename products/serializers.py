@@ -17,7 +17,6 @@ class CategorySerializer(serializers.ModelSerializer):
     parent_name = serializers.CharField(source='parent.name', read_only=True, allow_null=True)  # Optional: Parent name
     subcategories = serializers.SerializerMethodField()  # For nested subcats (limited depth)
     full_path = serializers.SerializerMethodField()  # Computed full category path
-    image = serializers.ImageField(required=False, allow_null=True)  # Optional image field
     image_url = serializers.SerializerMethodField()
 
     class Meta:
