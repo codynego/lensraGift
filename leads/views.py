@@ -5,12 +5,21 @@ from rest_framework.permissions import AllowAny
 
 # LEAD VIEWS
 class LeadListCreateView(generics.ListCreateAPIView):
-    """
-    List all leads (for admin) or create a new lead when they sign up.
-    """
     queryset = Lead.objects.all().order_by('-created_at')
     serializer_class = LeadSerializer
-    permission_classes = [AllowAny]  # Allow anyone to view/update their gift preview
+    permission_classes = [AllowAny]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # This will now either create a new Lead or update the existing one
+        instance = serializer.save() 
+        
+        # Check if it was an update or a create to return the right status code
+        status_code = status.HTTP_201_CREATED # Default
+        
+        return Response(serializer.data, status=status_code)
 
 class LeadDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
