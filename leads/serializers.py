@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Lead, InviteLink, GiftPreview, WhatsAppLog
+import random
+import string
 
 class InviteLinkSerializer(serializers.ModelSerializer):
     code = serializers.CharField(required=False)
