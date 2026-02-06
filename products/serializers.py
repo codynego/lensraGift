@@ -17,10 +17,11 @@ class CategorySerializer(serializers.ModelSerializer):
     parent_name = serializers.CharField(source='parent.name', read_only=True, allow_null=True)  # Optional: Parent name
     subcategories = serializers.SerializerMethodField()  # For nested subcats (limited depth)
     full_path = serializers.SerializerMethodField()  # Computed full category path
+    image = serializers.ImageField(required=False, allow_null=True)  # Optional image field
 
     class Meta:
         model = Category
-        fields = ['id', 'name', 'slug', 'parent_id', 'parent_name', 'subcategories', 'full_path']
+        fields = ['id', 'name', 'slug', 'parent_id', 'parent_name', 'subcategories', 'full_path', 'image_url']
 
     def get_subcategories(self, obj):
         # Recursively serialize subcategories, but limit depth to avoid infinite loops
@@ -30,6 +31,25 @@ class CategorySerializer(serializers.ModelSerializer):
             return []
         subcategory_qs = obj.subcategories.all()
         return CategorySerializer(subcategory_qs, many=True, context={'depth': depth + 1}).data
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            url = obj.image.url
+            
+            # Add Cloudinary transformations for optimization
+            # This works if you're using CloudinaryField
+            if hasattr(obj.image, 'build_url'):
+                url = obj.image.build_url(
+                    quality='auto',           # Automatic quality adjustment
+                    fetch_format='auto',      # Automatic format (WebP for supported browsers)
+                    width=800,                # Resize to appropriate width
+                    crop='limit',             # Don't upscale, only downscale
+                    flags='progressive'       # Progressive JPEG loading
+                )
+            
+            if url.startswith('http://'):
+                url = 'https://' + url[7:]
+            return url
 
     def get_full_path(self, obj):
         # Build a breadcrumb-style path: "Grandparent > Parent > Name"

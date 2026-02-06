@@ -75,7 +75,7 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ('name', 'parent__name')  # Search by name or parent name
     
     # Add 'parent' to the form fields
-    fields = ('name', 'slug', 'parent')
+    fields = ('name', 'slug', 'parent', 'image')
 
     def get_full_path(self, obj):
         # Build a breadcrumb-style path: "Grandparent > Parent > Name"
