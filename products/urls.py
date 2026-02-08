@@ -10,6 +10,7 @@ from .views import (
     TagListView,
     CategoryDetailView,
     RelatedProductsView,
+    SaleProductListView
 )
 
 app_name = 'products'
@@ -19,6 +20,7 @@ urlpatterns = [
     path('', ProductListView.as_view(), name='product-list'),
     path('tags/', TagListView.as_view(), name='tag-list'),
     path('categories/', CategoryListView.as_view(), name='category-list'),
+    path('deals/', SaleProductListView.as_view(), name='sale-products'),
     path('related/<slug:slug>/', RelatedProductsView.as_view(), name='related-products'),
     path('categories/<slug:slug>/', CategoryDetailView.as_view(), name='category-detail'),
     path('featured/', FeaturedProductsView.as_view(), name='featured-products'),

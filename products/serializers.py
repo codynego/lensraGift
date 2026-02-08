@@ -4,6 +4,7 @@ from .models import (
     Category, Attribute, AttributeValue, ProductVariant, Tag
 )
 from designs.models import Design 
+from django.utils import timezone
 
 
 
@@ -121,6 +122,12 @@ class ProductSerializer(serializers.ModelSerializer):
     category_path = serializers.SerializerMethodField()  # Replaces category_name
     image_url = serializers.SerializerMethodField()
     tags = TagSerializer(many=True, read_only=True)
+    is_on_sale = serializers.SerializerMethodField()
+    display_price = serializers.SerializerMethodField()
+    original_price = serializers.SerializerMethodField()
+    sale_label = serializers.SerializerMethodField()
+    sale_ends_in = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Product
@@ -129,6 +136,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'min_order_quantity', 'description', 'is_customizable', 
             'printable_areas', 'variants', 'tags',
             'is_featured', 'is_trending', 'is_active', 'categories', 'category_path', 'message',
+            'is_on_sale', 'display_price', 'original_price', 'sale_label', 'sale_ends_in',
         ]
         read_only_fields = ['id', 'is_trending', 'is_featured', 'is_active', 'is_customizable', 'tags', 'message']
 
@@ -160,12 +168,47 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 
+    def get_is_on_sale(self, obj):
+        return obj.is_sale_active()
+
+
+    def get_display_price(self, obj):
+        return obj.get_display_price()
+
+
+    def get_original_price(self, obj):
+        if obj.is_sale_active():
+            return obj.base_price
+        return None
+
+
+    def get_sale_label(self, obj):
+        if obj.is_sale_active():
+            return obj.sale_label or "Launch Offer"
+        return None
+
+
+    def get_sale_ends_in(self, obj):
+        if obj.is_sale_active() and obj.sale_end:
+            remaining = obj.sale_end - timezone.now()
+            return int(remaining.total_seconds())
+        return None
+
+
+
+
 class ProductListSerializer(serializers.ModelSerializer):
     variants = ProductVariantSerializer(many=True, read_only=True)
     image_url = serializers.SerializerMethodField()
     categories = CategorySerializer(many=True, read_only=True)  # Optional: Full category details
     category_path = serializers.SerializerMethodField()  # Replaces category_name
     tags = TagSerializer(many=True, read_only=True)
+    is_on_sale = serializers.SerializerMethodField()
+    display_price = serializers.SerializerMethodField()
+    original_price = serializers.SerializerMethodField()
+    sale_label = serializers.SerializerMethodField()
+    sale_ends_in = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Product
@@ -173,6 +216,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             'id', 'name', 'slug', 'base_price', 'image', 'image_url', 
             'min_order_quantity', 'is_featured', 'is_customizable', 
             'is_trending', 'variants', 'categories', 'category_path', 'tags', 'message',
+            'is_on_sale', 'display_price', 'original_price', 'sale_label', 'sale_ends_in',
         ]
 
     def get_image_url(self, obj):
@@ -199,6 +243,33 @@ class ProductListSerializer(serializers.ModelSerializer):
         if obj.categories.exists():
             primary_cat = obj.categories.first()
             return CategorySerializer(primary_cat).data.get('full_path')  # Use the new full_path
+        return None
+
+
+    def get_is_on_sale(self, obj):
+        return obj.is_sale_active()
+
+
+    def get_display_price(self, obj):
+        return obj.get_display_price()
+
+
+    def get_original_price(self, obj):
+        if obj.is_sale_active():
+            return obj.base_price
+        return None
+
+
+    def get_sale_label(self, obj):
+        if obj.is_sale_active():
+            return obj.sale_label or "Launch Offer"
+        return None
+
+
+    def get_sale_ends_in(self, obj):
+        if obj.is_sale_active() and obj.sale_end:
+            remaining = obj.sale_end - timezone.now()
+            return int(remaining.total_seconds())
         return None
 
 class DesignPlacementSerializer(serializers.ModelSerializer):

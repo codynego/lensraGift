@@ -142,21 +142,34 @@ class ProductAdmin(admin.ModelAdmin):
                 'name',
                 'slug',
                 'categories',
-                'tags_input',  # ✅ form-only field
+                'tags_input',     # ✅ form-only field
                 'image',
+                'product_design',
                 'base_price',
                 'description',
                 'message',
-                'product_design',
                 'view_count',
             )
         }),
+
+        ('Sale & Pricing', {
+            'fields': (
+                'is_on_sale',
+                'sale_price',
+                'sale_label',
+                'sale_start',
+                'sale_end',
+            ),
+            'description': 'Enable limited-time deals and launch offers'
+        }),
+
         ('Inventory & Customization', {
             'fields': (
                 'min_order_quantity',
                 'is_customizable',
             )
         }),
+
         ('Status & Visibility', {
             'fields': (
                 'is_active',
@@ -165,6 +178,7 @@ class ProductAdmin(admin.ModelAdmin):
             )
         }),
     )
+
 
     # 🔹 Show categories with hierarchy
     def get_categories(self, obj):

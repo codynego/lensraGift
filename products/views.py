@@ -274,3 +274,18 @@ class RelatedProductsView(generics.ListAPIView):
             )
 
         return related[:8]  # perfect number for UI
+
+
+class SaleProductListView(ListAPIView):
+    serializer_class = ProductListSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        now = timezone.now()
+
+        return Product.objects.filter(
+            is_active=True,
+            is_on_sale=True,
+            sale_start__lte=now,
+            sale_end__gte=now
+        ).order_by('-created_at')
