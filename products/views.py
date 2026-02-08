@@ -276,6 +276,11 @@ class RelatedProductsView(generics.ListAPIView):
         return related[:8]  # perfect number for UI
 
 
+from django.utils import timezone
+from rest_framework.generics import ListAPIView
+
+
+
 class SaleProductListView(ListAPIView):
     serializer_class = ProductListSerializer
     permission_classes = [AllowAny]
